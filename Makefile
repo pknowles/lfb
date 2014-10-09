@@ -14,7 +14,7 @@ endif
 NOOP = @$(SHELL) -c true
 
 
-.PHONY: all debug prof opt clean cleaner
+.PHONY=all,debug,prof,opt,clean,cleaner
 TARGET=liblfb$(ASFX).a
 CC=g++
 LD=ar
@@ -23,7 +23,7 @@ CFLAGS= -fPIC $(CFLAGS_R) -Wno-unused-parameter -Wno-unused-but-set-variable  `p
 CFLAGS+= -I../pyarlib/../
 LFLAGS= -rcs 
 SUBLIBS= ../pyarlib/pyarlib$(ASFX).a
-OBJECTS= ./lfb.o ./prefixSums.o ./lfbBase.o ./lfbL.o ./lfbLL.o ./lfbB.o ./lfbPLL.o
+OBJECTS= ./lfbCL.o ./lfb.o ./prefixSums.o ./lfbBase.o ./lfbL.o ./lfbLL.o ./lfbB.o ./lfbPLL.o
 
 all: pyarlibpyarliba $(TARGET)
 
@@ -66,7 +66,8 @@ pyarlibpyarliba:
 	@export CCACHE_DISABLE=1 && $(CC) $(CFLAGS) -c $< -o $@
 
 #object dependencies
-./lfb.o: lfb.cpp lfbLL.h lfbB.h lfbL.h lfbPLL.h lfbBase.h lfb.h
+./lfbCL.o: lfbCL.cpp shaders/lfbRaggedSort.vert lfbBase.h lfbCL.h prefixSums.h shaders/lfbCopy.vert shaders/prefixSumsM.vert shaders/lfbCL.glsl shaders/lfbCLAlign.vert shaders/prefixSums.vert
+./lfb.o: lfb.cpp lfbLL.h lfbB.h lfbL.h lfbPLL.h lfbCL.h lfbBase.h lfb.h
 ./prefixSums.o: prefixSums.cpp prefixSums.h
 ./lfbBase.o: lfbBase.cpp shaders/lfb.glsl shaders/lfbZero.vert shaders/lfbTiles.glsl shaders/lfbSort.vert shaders/sorting.glsl lfbBase.h
 ./lfbL.o: lfbL.cpp shaders/lfbRaggedSort.vert lfbBase.h prefixSums.h shaders/lfbCopy.vert lfbL.h shaders/prefixSums.vert shaders/lfbL.glsl

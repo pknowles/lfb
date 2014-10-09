@@ -100,7 +100,7 @@ bool LFB_B::setUniforms(Shader& program, std::string suffix)
 	glUniform1i(glGetUniformLocation(program, (infoStructName + ".dataDepth").c_str()), numLayers);
 	CHECKERROR;
 	
-	//bool writing = state!=DRAWING;
+	bool writing = state!=DRAWING;
 	
 	std::string countsName = "counts" + suffix;
 	std::string dataName = "data" + suffix;

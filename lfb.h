@@ -12,10 +12,11 @@ class LFB
 {
 public:
 	enum LFBType {
-		LFB_TYPE_B, //basic (3D array)
-		LFB_TYPE_LL, //linked lists
-		LFB_TYPE_PLL, //paged linked lists (Crassin spinlock)
-		LFB_TYPE_L, //linearized (prefix sum scan)
+		LFB_TYPE_B,
+		LFB_TYPE_LL,
+		LFB_TYPE_PLL,
+		LFB_TYPE_L,
+		LFB_TYPE_CL,
 	};
 private:
 	int maxFrags;

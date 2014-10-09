@@ -167,7 +167,7 @@ bool LFB_L::setUniforms(Shader& program, std::string suffix)
 		return false;
 	
 	//writing, depending on the state, determines READ_ONLY, WRITE_ONLY and READ_WRITE TextureBuffer data
-	//bool writing = state!=DRAWING;
+	bool writing = state!=DRAWING;
 
 	//TextureBuffer::unbindAll();
 	
@@ -347,7 +347,7 @@ bool LFB_L::getDepthHistogram(std::vector<unsigned int>& histogram)
 	unsigned int p = 0;
 	for (int i = 0; i < getTotalPixels(); ++i)
 	{
-		assert((int)offsets->size() > i * (int)sizeof(unsigned int));
+		assert(offsets->size() > i * sizeof(unsigned int));
 		unsigned int v = l[i] - p;
 		p = l[i];
 		if (histogram.size() <= v)

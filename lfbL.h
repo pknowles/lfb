@@ -6,7 +6,7 @@
 
 #include "lfbBase.h"
 
-class TextureBuffer;
+struct TextureBuffer;
 
 class LFB_L : public LFBBase
 {

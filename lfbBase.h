@@ -15,7 +15,7 @@
 #include <map>
 #include <string>
 
-class TextureBuffer;
+struct TextureBuffer;
 
 class LFBBase
 {

@@ -5,6 +5,12 @@ The *layered fragment buffer* (LFB) demo framework. An updated library from the 
 introduced in the [OpenGL Insights: *Efficient Layered Fragment Buffer Techniques*](http://openglinsights.com/bendingthepipeline.html#EfficientLayeredFragmentBufferTechniques) book chapter.
 
 Includes factory style deep image construction, storage and access implementations, and attempts to abstract the LFB implementation in both C++ and GLSL.
+These include:
+
+- `LFB_TYPE_B` basic (3D array)
+- `LFB_TYPE_LL` linked lists
+- `LFB_TYPE_PLL` paged linked lists (Crassin spinlock)
+- `LFB_TYPE_L` linearized (prefix sum scan)
 
 This project uses [pyarlib](https://github.com/pknowles/pyarlib/) for shader and GL buffer management.
 

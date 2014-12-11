@@ -96,7 +96,7 @@ public:
 	size_t getMemoryUsage();
 	std::string getMemoryInfo();
 	int getFormat();
-	bool setFormat(int f);
+	bool setFormat(int f); //default: GL_RG32F. GL_RGBA32F is the only other one I've tested with
 	virtual bool getDepthHistogram(std::vector<unsigned int>& histogram);
 };
 

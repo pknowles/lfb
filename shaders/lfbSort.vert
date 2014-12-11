@@ -4,12 +4,28 @@
 
 LFB_DEC(toSort);
 
-vec4 frags[MAX_FRAGS];
+LFB_FRAG_TYPE frags[MAX_FRAGS];
+#define FRAGS(i) frags[i] //used in sorting.glsl
+
+#include "sorting.glsl"
 
 void main()
 {
-	int i = gl_VertexID;
-	int numFrags = loadFragments(toSort, i, frags);
-	sortFragments(frags, numFrags);
-	writeFragments(toSort, frags);
+	int index = gl_VertexID;
+	
+	LFB_INIT(toSort, index);
+	int fragCount = 0;
+	LFB_FOREACH(toSort, frag)
+		if (fragCount < MAX_FRAGS)
+			frags[fragCount++] = frag;
+	}
+	
+	sort_insert(fragCount);
+	
+	LFB_INIT(toSort, index);
+	fragCount = 0;
+	LFB_FOREACH(toSort, frag)
+		if (fragCount < MAX_FRAGS)
+			LFB_SET(toSort, frags[fragCount++]);
+	}
 }

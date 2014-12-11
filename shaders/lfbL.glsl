@@ -56,14 +56,14 @@ lfbTmp##suffix.fragCount = min(lfbTmp##suffix.fragCount, MAX_FRAGS);
 #define LFB_LOAD(suffix, index) \
 	LFB_FRAG_TYPE(imageLoad(data##suffix, lfbTmp##suffix.fragOffset + (index)))
 	
-#define LFB_STORE(suffix, index, data) \
-	imageStore(data##suffix, lfbTmp##suffix.fragOffset + (index), vec4(data LFB_FRAG_PAD))
+#define LFB_STORE(suffix, index, dat) \
+	imageStore(data##suffix, lfbTmp##suffix.fragOffset + (index), vec4(dat LFB_FRAG_PAD))
 
 #define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.i = 0
 #define LFB_ITER_CONDITION(suffix) lfbTmp##suffix.i < lfbTmp##suffix.fragCount
 #define LFB_ITER_INC(suffix) ++lfbTmp##suffix.i
 #define LFB_GET(suffix) LFB_LOAD(suffix, (lfbTmp##suffix.fragCount-1-lfbTmp##suffix.i))
-#define LFB_SET(suffix, data) LFB_STORE(suffix, lfbTmp##suffix.fragCount-1-lfbTmp##suffix.i, data)
+#define LFB_SET(suffix, dat) LFB_STORE(suffix, lfbTmp##suffix.fragCount-1-lfbTmp##suffix.i, dat)
 
 #if !LFB_READONLY
 void _addFragment(LFBInfo info, inout LFBTmp tmp, LFB_UNIFORMS, int fragIndex, LFB_FRAG_TYPE dat)

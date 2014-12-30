@@ -6,7 +6,7 @@
 
 #include "lfbLL.h"
 
-class TextureBuffer;
+struct TextureBuffer;
 
 class LFB_PLL : public LFB_LL
 {

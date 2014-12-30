@@ -347,7 +347,7 @@ bool LFB_L::getDepthHistogram(std::vector<unsigned int>& histogram)
 	unsigned int p = 0;
 	for (int i = 0; i < getTotalPixels(); ++i)
 	{
-		assert(offsets->size() > i * sizeof(unsigned int));
+		assert(offsets->size() > i * (int)sizeof(unsigned int));
 		unsigned int v = l[i] - p;
 		p = l[i];
 		if (histogram.size() <= v)

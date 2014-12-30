@@ -8,6 +8,10 @@
 #define LFB_READONLY 0
 #endif
 
+#ifndef LFB_L_REVERSE
+#define LFB_L_REVERSE 0
+#endif
+
 #define _MAX_FRAGS this_is_defined_by_the_application
 
 #ifndef MAX_FRAGS
@@ -47,18 +51,10 @@
 //helper hash function
 #define LFB_COORD_HASH(suffix, coord) \
 	(int((coord).y * lfbInfo##suffix.size.y) * lfbInfo##suffix.size.x + int((coord).x * lfbInfo##suffix.size.x))
+//FIXME: should rename to LFB_NCOORD_HASH and LFB_ICOORD_HASH
 #define LFB_HASH(suffix, coord) \
 	((int((coord).y) * lfbInfo##suffix.size.x) + int((coord).x))
 #define LFB_FRAG_HASH(suffix) LFB_HASH(suffix, gl_FragCoord.xy)
-
-//implemented by LFB types
-//#define LFB_DEC(name) - declare lfb
-//#define lfbHash(suffix, coord)
-//#define addFragment(suffix, hash, dataVec, depth)
-//#define loadFragments(suffix, hash, fragslist)
-//#define writeFragments(suffix, fragslist)
-//#define countFragments(suffix, hash)
-//#define iterFragments(suffix, hash, fragOut)
 
 //this encode/decode was used to store an alpha channel in addition to rgb + depth
 //with proper support for structs in global video memory, this whole process will become much cleaner
@@ -97,4 +93,5 @@ for ( \
 	) \
 { \
 	LFB_FRAG_TYPE frag = LFB_GET(suffix);
+
 

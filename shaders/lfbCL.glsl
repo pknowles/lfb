@@ -91,7 +91,12 @@ LFBTmp lfbTmp##suffix = LFB_TMP_CONSTRUCTOR;
 #define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.i = 0
 #define LFB_ITER_CONDITION(suffix) lfbTmp##suffix.i < lfbTmp##suffix.fragCount
 #define LFB_ITER_INC(suffix) ++lfbTmp##suffix.i
+
+#if LFB_L_REVERSE == 1
 #define LFB_GET(suffix) LFB_LOAD(suffix, (lfbTmp##suffix.fragCount-1-lfbTmp##suffix.i))
+#else
+#define LFB_GET(suffix) LFB_LOAD(suffix, lfbTmp##suffix.i)
+#endif
 
 #if !LFB_READONLY
 void _addFragment(LFBInfo info, inout LFBTmp tmp, LFB_UNIFORMS, int fragIndex, LFB_FRAG_TYPE fragDat)

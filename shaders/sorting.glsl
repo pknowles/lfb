@@ -1,63 +1,27 @@
 /* Copyright 2011 Pyarelal Knowles, under GNU LGPL (see LICENCE.txt) */
+/*
+This file expects a macro FRAGS(i) to be defined before including it.
+*/
 
-//other sorts were attempted but these
-//were the most promising
-#define SORT_MERGE 0
-#define SORT_BUBBLE 0
-#define SORT_INSERT 1
-#define SORT_SELECT 0
-#define SORT_SHELL 0
-
-#define LOGNSORT 0
-
-#if LOGNSORT == 1
-#undef SORT_INSERT
-#define SORT_INSERT 0
-#undef SORT_SHELL
-#define SORT_SHELL 1
-#endif
-
-#if SORT_SHELL
-void sortFragments(inout vec4 frags[MAX_FRAGS], int fragCount)
-{
-	int inc = fragCount / 2;
-	while (inc > 0)
-	{
-		for (int i = inc; i < fragCount; ++i)
-		{
-			vec4 tmp = frags[i];
-			int j = i;
-			while (j >= inc && frags[j - inc].a > tmp.a)
-			{
-				frags[j] = frags[j - inc];
-				j -= inc;
-			}
-			frags[j] = tmp;
-		}
-		inc = int(inc / 2.2 + 0.5);
-	}
-}
-#endif
-
-#if SORT_MERGE
-vec4 leftArray[MAX_FRAGS/2];
-void merge(inout vec4 frags[MAX_FRAGS], int step, int a, int b, int c)
+LFB_FRAG_TYPE leftArray[MAX_FRAGS/2];
+void merge(int step, int a, int b, int c)
 {
 	int i;
 	for (i = 0; i < step; ++i)
-		leftArray[i] = frags[a+i];
+		leftArray[i] = FRAGS(a+i);
 
 	i = 0;
 	int j = 0;
 	for (int k = a; k < c; ++k)
 	{
-		if (b+j >= c || (i < step && leftArray[i].w < frags[b+j].w))
-			frags[k] = leftArray[i++];
+		if (b+j >= c || (i < step && LFB_FRAG_DEPTH(leftArray[i]) < LFB_FRAG_DEPTH(FRAGS(b+j))))
+			FRAGS(k) = leftArray[i++];
 		else
-			frags[k] = frags[b+j++];
+			FRAGS(k) = FRAGS(b+j++);
 	}
 }
-void sortFragments(inout vec4 frags[MAX_FRAGS], int fragCount)
+
+void sort_merge(int fragCount)
 {
 	int n = fragCount;
 	int step = 1;
@@ -66,66 +30,146 @@ void sortFragments(inout vec4 frags[MAX_FRAGS], int fragCount)
 		int i = 0;
 		while (i < n - step)
 		{
-			merge(frags, step, i, i + step, min(i + step + step, n));
+			merge(step, i, i + step, min(i + step + step, n));
 			i += 2 * step;
 		}
 		step *= 2;
 	}
 }
-#endif
 
-#if SORT_BUBBLE
-void sortFragments(inout vec4 frags[MAX_FRAGS], int fragCount)
+void sort_shell(int fragCount)
 {
-	vec4 t;
-	for (int i = 0; i < fragCount-1; ++i)
+	int inc = fragCount / 2;
+	while (inc > 0)
 	{
-		for (int j = i+1; j < fragCount; ++j)
+		for (int i = inc; i < fragCount; ++i)
 		{
-			if (frags[j].a < frags[i].a)
+			LFB_FRAG_TYPE tmp = FRAGS(i);
+			int j = i;
+			while (j >= inc && LFB_FRAG_DEPTH(FRAGS(j - inc)) > LFB_FRAG_DEPTH(tmp))
 			{
-				t = frags[i];
-				frags[i] = frags[j];
-				frags[j] = t;
+				FRAGS(j) = FRAGS(j - inc);
+				j -= inc;
 			}
+			FRAGS(j) = tmp;
 		}
+		inc = int(inc / 2.2 + 0.5);
 	}
 }
-#endif
 
-#if SORT_INSERT
-void sortFragments(inout vec4 frags[MAX_FRAGS], int fragCount)
+void sort_insert(int fragCount)
 {
 	for (int j = 1; j < fragCount; ++j)
 	{
-		vec4 key = frags[j];
+		LFB_FRAG_TYPE key = FRAGS(j);
 		int i = j - 1;
-		while (i >= 0 && frags[i].a > key.a)
+		while (i >= 0 && LFB_FRAG_DEPTH(FRAGS(i)) > LFB_FRAG_DEPTH(key))
 		{
-			frags[i+1] = frags[i];
+			FRAGS(i+1) = FRAGS(i);
 			--i;
 		}
-		frags[i+1] = key;
+		FRAGS(i+1) = key;
 	}
 }
-#endif
 
-#if SORT_SELECT
-void sortFragments(inout vec4 frags[MAX_FRAGS], int fragCount)
+void sort_cbinsert(int fragCount)
 {
-	vec4 t;
-	for (int j = 0; j < fragCount-1; ++j)
+	int c = MAX_FRAGS;
+	
+	//NOTE: requires MAX_FRAGS be a power of 2!!!!! use mod (%) otherwise
+	#define CFRAG(i) FRAGS((c+(i))&(MAX_FRAGS-1))
+	
+	LFB_FRAG_TYPE tmp;
+	int left, right, m;
+	for (int j = 1; j < fragCount; ++j)
 	{
-		int swap = j;
-		for (int i = j+1; i < fragCount; ++i)
+		//binary search for insert position
+		left = 0, right = j;
+		while (left < right)
 		{
-			if (frags[swap].a > frags[i].a)
-				swap = i;
+			m = (left + right) >> 1;
+			if (LFB_FRAG_DEPTH(CFRAG(j)) > LFB_FRAG_DEPTH(CFRAG(m)))
+				left = m + 1;
+			else
+				right = m;
 		}
-		t = frags[swap];
-		frags[swap] = frags[j];
-		frags[j] = t;
+		
+		//if not already in order,
+		if (j != left)
+		{
+			//if belongs in the second half of the circular buffer
+			if (left > j / 2)
+			{
+				//swap into position normally (from tail)
+				tmp = CFRAG(j);
+				for (int i = j; i > left; --i)
+					CFRAG(i) = CFRAG(i-1);
+				CFRAG(left) = tmp;
+			}
+			else //else, should be less swaps starting from the other end
+			{
+				//swap into position the other way! dammit it I'm tired. firure it out for yourself
+				tmp = CFRAG(j);
+				
+				//peel the tail into the hole created when shifting the circular buffer backwards
+				CFRAG(j) = CFRAG(fragCount-1); //FIXME: one unnecessary right at the end
+				
+				//shift pointer backwards
+				--c;
+				
+				//swap into position from head
+				for (int i = 0; i < left; ++i)
+					CFRAG(i) = CFRAG(i+1);
+				CFRAG(left) = tmp;
+			}
+		}
+	}
+	
+	//straighten the circular list
+	//TODO: do this in less operations than fragCount
+	int offset = 0;
+	for (int i = 0; i < MAX_FRAGS; ++i)
+	{
+		tmp = FRAGS(offset);
+		int a = offset;
+		int b = (offset + c) % MAX_FRAGS;
+		while (b != offset)
+		{
+			FRAGS(a) = FRAGS(b);
+			a = b;
+			b = (b + c) % MAX_FRAGS;
+			++i;
+		}
+		FRAGS(a) = tmp;
+		++offset;
 	}
 }
-#endif
+
+void sort_bitonic(int fragCount)
+{
+	int i,j,k;
+	for (i = fragCount; i < MAX_FRAGS; ++i)
+		LFB_FRAG_DEPTH(FRAGS(i)) = 99999.0;
+		
+	#define SWAP_BITONIC_SORT(a, b) \
+		if (LFB_FRAG_DEPTH(FRAGS(a)) > LFB_FRAG_DEPTH(FRAGS(b))) \
+		{ \
+			tmp = FRAGS(a); FRAGS(a) = FRAGS(b); FRAGS(b) = tmp; \
+		}
+
+	LFB_FRAG_TYPE tmp;
+	for (k=2;k<=MAX_FRAGS;k=k<<1) {
+	  for (j=k>>1;j>0;j=j>>1) {
+		for (i=0;i<MAX_FRAGS;i++) {
+		  int ixj=i^j;
+		  if (ixj > i)
+		  {
+		    if ((i&k)==0) SWAP_BITONIC_SORT(i,ixj)
+		    if ((i&k)!=0) SWAP_BITONIC_SORT(ixj,i)
+		  }
+		}
+	  }
+	}
+}
+
 

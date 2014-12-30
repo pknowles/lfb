@@ -8,7 +8,7 @@
 
 #define LFB_DEFAULT_NUMLAYERS 16
 
-class TextureBuffer;
+struct TextureBuffer;
 
 class LFB_B : public LFBBase
 {

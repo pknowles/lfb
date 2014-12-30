@@ -9,8 +9,8 @@
 
 #include "lfbBase.h"
 
-class GPUBuffer;
-class TextureBuffer;
+struct GPUBuffer;
+struct TextureBuffer;
 
 class LFB_LL : public LFBBase
 {

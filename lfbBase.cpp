@@ -193,7 +193,7 @@ bool LFBBase::begin()
 	{
 		_resize(size2D);
 		isDirty = false;
-		printf("LFB Resized %ix%i (pack %ix%i, max %i, stride %i)\n", size2D.x, size2D.y, pack.x, pack.y, maxFrags, lfbDataStride);
+		printf("LFB Resized %ix%i (pack %ix%i, max %i, stride %i = vec%if)\n", size2D.x, size2D.y, pack.x, pack.y, maxFrags, lfbDataStride, lfbDataStride/4);
 	}
 	
 	if (totalPixels == 0)

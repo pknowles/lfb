@@ -139,9 +139,9 @@ bool LFB_LL::setUniforms(Shader& program, std::string suffix)
 	//writing, depending on the state, determines READ_ONLY, WRITE_ONLY and READ_WRITE TextureBuffer data
 	bool writing = state!=DRAWING;
 	
-	int headIndex = program.unique("image", headName);
-	int nextIndex = program.unique("image", nextName);
-	int dataIndex = program.unique("image", dataName);
+	//int headIndex = program.unique("image", headName);
+	//int nextIndex = program.unique("image", nextName);
+	//int dataIndex = program.unique("image", dataName);
 	//printf("%s: %i %i %i\n", suffix.c_str(), headIndex, nextIndex, dataIndex);
 	//headPtrs->bind(headIndex, headName.c_str(), program, true, writing);
 	program.set(headName, *headPtrs);

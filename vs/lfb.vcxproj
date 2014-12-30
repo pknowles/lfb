@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{7CE388A8-9368-478E-A753-DC81852D28E8}</ProjectGuid>
+    <ProjectGuid>{36EA31C5-CF92-4F49-BA1A-D7A30766A3E6}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>lfb</RootNamespace>
   </PropertyGroup>
@@ -19,11 +19,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -37,25 +39,23 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
+  <PropertyGroup />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)/../../</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)../../</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -65,7 +65,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)../../</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -73,40 +74,37 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
+    <Lib>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Lib>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\extraglenums.h" />
-    <ClInclude Include="..\lfb.h" />
-    <ClInclude Include="..\lfbB.h" />
-    <ClInclude Include="..\lfbBase.h" />
-    <ClInclude Include="..\lfbCL.h" />
-    <ClInclude Include="..\lfbL.h" />
-    <ClInclude Include="..\lfbLL.h" />
-    <ClInclude Include="..\lfbPLL.h" />
-    <ClInclude Include="..\prefixSums.h" />
-    <ClInclude Include="..\resource.h" />
-    <ClInclude Include="resource.h" />
-  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\lfb.cpp" />
     <ClCompile Include="..\lfbB.cpp" />
     <ClCompile Include="..\lfbBase.cpp" />
-    <ClCompile Include="..\lfbCL.cpp" />
     <ClCompile Include="..\lfbL.cpp" />
     <ClCompile Include="..\lfbLL.cpp" />
     <ClCompile Include="..\lfbPLL.cpp" />
     <ClCompile Include="..\prefixSums.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\pyarlib\vs\pyarlib.vcxproj">
-      <Project>{fd1cd7b0-d2b8-441d-8e27-411a707b0cf2}</Project>
-    </ProjectReference>
+    <ClInclude Include="..\extraglenums.h" />
+    <ClInclude Include="..\lfb.h" />
+    <ClInclude Include="..\lfbB.h" />
+    <ClInclude Include="..\lfbBase.h" />
+    <ClInclude Include="..\lfbL.h" />
+    <ClInclude Include="..\lfbLL.h" />
+    <ClInclude Include="..\lfbPLL.h" />
+    <ClInclude Include="..\prefixSums.h" />
+    <ClInclude Include="..\resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\lfbShaders.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\binary1.bin" />
+    <ProjectReference Include="..\..\pyarlib\vs\pyarlib.vcxproj">
+      <Project>{c664bed8-bc3c-4614-82f0-9689508ef3e9}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

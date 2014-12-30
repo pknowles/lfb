@@ -22,7 +22,6 @@ void main()
 	
 	sort_insert(fragCount);
 	
-	LFB_INIT(toSort, index);
 	fragCount = 0;
 	LFB_FOREACH(toSort, frag)
 		if (fragCount < MAX_FRAGS)

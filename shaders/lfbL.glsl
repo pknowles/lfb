@@ -13,6 +13,10 @@ struct LFBTmp
 	int i;
 };
 
+//the order in which the linearized lfb is accessed
+//can be reversed to make it the same as the linked list lfb
+//#define LFB_L_REVERSE 1
+
 #define LFB_TMP_CONSTRUCTOR LFBTmp(0, 0, 0, -1)
 
 #if LFB_READONLY
@@ -62,8 +66,14 @@ lfbTmp##suffix.fragCount = min(lfbTmp##suffix.fragCount, MAX_FRAGS);
 #define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.i = 0
 #define LFB_ITER_CONDITION(suffix) lfbTmp##suffix.i < lfbTmp##suffix.fragCount
 #define LFB_ITER_INC(suffix) ++lfbTmp##suffix.i
-#define LFB_GET(suffix) LFB_LOAD(suffix, (lfbTmp##suffix.fragCount-1-lfbTmp##suffix.i))
+
+#if LFB_L_REVERSE == 1
+#define LFB_GET(suffix) LFB_LOAD(suffix, lfbTmp##suffix.fragCount-1-lfbTmp##suffix.i)
 #define LFB_SET(suffix, dat) LFB_STORE(suffix, lfbTmp##suffix.fragCount-1-lfbTmp##suffix.i, dat)
+#else
+#define LFB_GET(suffix) LFB_LOAD(suffix, lfbTmp##suffix.i)
+#define LFB_SET(suffix, dat) LFB_STORE(suffix, lfbTmp##suffix.i, dat)
+#endif
 
 #if !LFB_READONLY
 void _addFragment(LFBInfo info, inout LFBTmp tmp, LFB_UNIFORMS, int fragIndex, LFB_FRAG_TYPE dat)

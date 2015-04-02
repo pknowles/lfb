@@ -48,6 +48,7 @@ public:
 	virtual int end();
 	virtual std::string getName();
 	virtual bool getDepthHistogram(std::vector<unsigned int>& histogram);
+	virtual bool save(std::string filename) const;
 };
 
 #endif

@@ -282,4 +282,15 @@ bool LFBBase::getDepthHistogram(std::vector<unsigned int>& histogram)
 	return false;
 }
 
+bool LFBBase::save(std::string filename) const
+{
+	printf("LFB::save() not implemented for this type\n");	
+	return false;
+}
+
+bool LFBBase::load(std::string filename)
+{
+	printf("LFB::load() not implemented for this type\n");	
+	return false;
+}
 

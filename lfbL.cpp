@@ -3,11 +3,15 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <ostream>
+#include <fstream>
 
 #include <string>
 #include <vector>
 #include <map>
 #include <set>
+
+#include <zlib.h>
 
 #include <pyarlib/gpu.h>
 
@@ -355,6 +359,138 @@ bool LFB_L::getDepthHistogram(std::vector<unsigned int>& histogram)
 		histogram[v]++;
 	}
 	offsets->unmap();
+	return true;
+}
+
+bool LFB_L::save(std::string filename) const
+{
+	if (!offsets->size())
+		return false;
+	
+	std::ofstream ofile(filename.c_str(), std::ios::binary);
+	if (!ofile)
+		return false;
+	
+	int pixels = size2D.x * size2D.y;
+	std::vector<int> counts(pixels);
+	unsigned int* endoffsets = (unsigned int*)offsets->map(true, false);
+	unsigned int p = 0;
+	for (int i = 0; i < pixels; ++i)
+	{
+		assert(offsets->size() > i * (int)sizeof(unsigned int));
+		counts[i] = endoffsets[i] - p;
+		p = endoffsets[i];
+	}
+	
+	const int COMPRESS_KEY = 0x001;
+	const int COMPRESS_VAL_NONE = 0x0;
+	const int COMPRESS_VAL_ZLIB = 0x1;
+	
+	const int LAYOUT_KEY = 0x002;
+	const int LAYOUT_VAL_PIXELS = 0x000; //63% data compression
+	const int LAYOUT_VAL_SHEETS = 0x001; //54% data compression
+	
+	bool enableCompression = true;
+	int layout = LAYOUT_VAL_SHEETS;
+	
+	//header
+	ofile.write("LFB", 3);
+	ofile.write((char*)&size2D.x, sizeof(int)); //must have sizex
+	ofile.write((char*)&size2D.y, sizeof(int)); //must have sizex
+	ofile.write((char*)&lfbDataStride, sizeof(int)); //must have data stride
+	int headerStart = (int)ofile.tellp();
+	int dataStart = 0;
+	ofile.write((char*)&dataStart, sizeof(int));
+	
+	ofile.write((char*)&COMPRESS_KEY, sizeof(int));
+	if (enableCompression)
+		ofile.write((char*)&COMPRESS_VAL_ZLIB, sizeof(int));
+	else
+		ofile.write((char*)&COMPRESS_VAL_NONE, sizeof(int));
+		
+	ofile.write((char*)&LAYOUT_KEY, sizeof(int));
+	ofile.write((char*)&layout, sizeof(int));
+	
+	//go back and write dataStart, for code to skip the header
+	dataStart = (int)ofile.tellp();
+	ofile.seekp(headerStart);
+	ofile.write((char*)&dataStart, sizeof(int)); //for future attribs
+	ofile.seekp(dataStart);
+	
+	//per-pixel counts - sizex * sizey or (
+	if (enableCompression)
+	{
+		uLongf compressLen = compressBound(counts.size() * sizeof(unsigned int));
+		std::vector<char> compressedCounts(compressLen);
+		//printf("BEFORE %i\n", compressLen);
+		compress((Bytef*)&compressedCounts[0], &compressLen, (Bytef*)&counts[0], counts.size() * sizeof(unsigned int));
+		//printf("AFTER %i\n", compressLen);
+		int64_t compressLen64 = compressLen;
+		ofile.write((char*)&compressLen64, sizeof(int64_t));
+		ofile.write((const char*)&compressedCounts[0], compressLen);
+	}
+	else
+		ofile.write((const char*)&counts[0], counts.size() * sizeof(unsigned int));
+	//printf("end counts %i\n", (int)ofile.tellp());
+	
+	//packed data - sum(counts) * data stride
+	//FIXME: this has a fairly terrible compression ratio
+	float* d = (float*)data->map(true, false);
+	int datSize = endoffsets[pixels-1] * lfbDataStride;
+	
+	
+	int attribs = lfbDataStride/sizeof(float);
+	std::vector<float> shuffled;
+	if (layout == LAYOUT_VAL_SHEETS)
+	{
+		shuffled.reserve(datSize);
+		for (int attrib = 0; attrib < attribs; ++attrib)
+		{
+			for (int sheet = 0;; ++sheet)
+			{
+				bool found = false;
+				for (int i = 0; i < pixels; ++i)
+				{
+					if (counts[i] > sheet) //FIXME: REALLY SLOOOOW!!!
+					{
+						found = true;
+						shuffled.push_back(d[(endoffsets[i]-counts[i]+sheet)*attribs+attrib]);
+					}
+				}
+				if (!found)
+					break;
+			}
+		}
+		assert(shuffled.size()*sizeof(float) == datSize);
+	}
+	
+	if (enableCompression)
+	{
+		uLongf compressLen = compressBound(datSize);
+		std::vector<char> compressedData(compressLen);
+		//printf("BEFORE %i\n", datSize);
+		if (shuffled.size())
+			compress((Bytef*)&compressedData[0], &compressLen, (Bytef*)&shuffled[0], datSize);
+		else
+			compress((Bytef*)&compressedData[0], &compressLen, (Bytef*)d, datSize);
+		//printf("AFTER %i\n", compressLen);
+		int64_t compressLen64 = compressLen;
+		ofile.write((char*)&compressLen64, sizeof(int64_t));
+		ofile.write((char*)&compressedData[0], compressLen);
+	}
+	else
+	{
+		if (shuffled.size())
+			ofile.write((char*)&shuffled[0], datSize);
+		else
+			ofile.write((char*)d, datSize);
+	}
+	//printf("end data %i\n", (int)ofile.tellp());
+	
+	ofile.close();
+	data->unmap();
+	offsets->unmap();
+	
 	return true;
 }
 

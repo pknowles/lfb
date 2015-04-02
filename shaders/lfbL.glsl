@@ -75,7 +75,6 @@ lfbTmp##suffix.fragCount = min(lfbTmp##suffix.fragCount, MAX_FRAGS);
 #define LFB_SET(suffix, dat) LFB_STORE(suffix, lfbTmp##suffix.i, dat)
 #endif
 
-
 #if !LFB_READONLY
 void _addFragment(LFBInfo info, inout LFBTmp tmp, LFB_UNIFORMS, int fragIndex, LFB_FRAG_TYPE dat)
 {

@@ -162,6 +162,7 @@
     <ClCompile Include="..\lfb.cpp" />
     <ClCompile Include="..\lfbB.cpp" />
     <ClCompile Include="..\lfbBase.cpp" />
+    <ClCompile Include="..\lfbCL.cpp" />
     <ClCompile Include="..\lfbL.cpp" />
     <ClCompile Include="..\lfbLL.cpp" />
     <ClCompile Include="..\lfbPLL.cpp" />
@@ -172,6 +173,7 @@
     <ClInclude Include="..\lfb.h" />
     <ClInclude Include="..\lfbB.h" />
     <ClInclude Include="..\lfbBase.h" />
+    <ClInclude Include="..\lfbCL.h" />
     <ClInclude Include="..\lfbL.h" />
     <ClInclude Include="..\lfbLL.h" />
     <ClInclude Include="..\lfbPLL.h" />

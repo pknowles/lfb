@@ -36,4 +36,6 @@ void main()
 		imageStore(tozero, gl_VertexID*2+0, uvec4(0U));
 		imageStore(tozero, gl_VertexID*2+1, uvec4(0U));
 	}
+	
+	gl_Position = vec4(0, 0, 0, 0); //<-- ok, are you happy now, mr windows driver???
 }

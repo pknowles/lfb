@@ -53,6 +53,8 @@ LFBBase::LFBBase() : size2D(0, 0)
 	
 	computeCounts = false;
 	
+	bindless = false;
+	
 	isDirty = false;
 	
 	lastLFBDataStride = 0;
@@ -182,6 +184,7 @@ void LFBBase::setDefines(Shader& program)
 {
 	program.define("_MAX_FRAGS", maxFrags);
 	program.define("LFB_FRAG_SIZE", lfbDataStride/sizeof(float));
+	program.define("LFB_BINDLESS", bindless);
 	
 	//LFB_READONLY could also be defined here, however
 	//in case additional operations need to be performed, such
@@ -238,6 +241,13 @@ bool LFBBase::requireCounts(bool enable)
 		
 	computeCounts = enable;
 	isDirty = true;
+	return true;
+}
+bool LFBBase::useBindlessGraphics(bool enable)
+{
+	if (bindless == enable)
+		return false;
+	bindless = enable;
 	return true;
 }
 std::string LFBBase::getMemoryInfo()

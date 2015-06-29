@@ -58,6 +58,8 @@ public: //FIXME: for testing
 	
 	bool computeCounts; //for linked lists, this can be avoided but some algorithms need it
 	
+	bool bindless; //instead of image_load_store, use bindless graphics
+	
 	int totalPixels; //size2D.x * size2D.y
 	int totalFragments; //is not always accurate but will never be less than exact
 	int allocFragments; //data allocated, for some implementations will allocate more to reduce allocation frequency
@@ -93,6 +95,7 @@ public:
 	virtual void sort();
 	virtual std::string getName() =0; //just for debugging
 	bool requireCounts(bool enable = true);
+	bool useBindlessGraphics(bool enable = true);
 	size_t getMemoryUsage();
 	std::string getMemoryInfo();
 	int getFormat();

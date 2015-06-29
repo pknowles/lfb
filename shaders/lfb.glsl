@@ -19,6 +19,7 @@
 #endif
 
 #define LFB_REQUIRE_COUNTS 0
+#define LFB_BINDLESS 0
 
 #define LFB_FRAG_SIZE set_by_app //in floats
 
@@ -44,6 +45,39 @@
 #define LFB_FRAG_DEPTH(v) (v.w)
 #else
 #error Invalid LFB_FRAG_SIZE
+#endif
+
+//FIXME: should really clear up this signed/unsigned int nonsense at some point
+#if LFB_BINDLESS
+	#extension GL_NV_gpu_shader5 : enable
+	#extension GL_NV_shader_buffer_load : enable
+
+	//FIXME: not sure if bindless graphics have a const for LFB_READONLY
+	#define LFB_EXPOSE_TABLE uint*
+	#define LFB_EXPOSE_TABLE_COHERENT coherent LFB_EXPOSE_TABLE
+	#define LFB_EXPOSE_DATA LFB_FRAG_TYPE*
+	#define LFB_EXPOSE_TABLE_GET(buffer, index) int(buffer[index])
+	#define LFB_EXPOSE_DATA_GET(buffer, index) buffer[index]
+	#define LFB_EXPOSE_TABLE_SET(buffer, index, val) buffer[index] = uint(val)
+	#define LFB_EXPOSE_DATA_SET(buffer, index, val) buffer[index] = val
+	#define LFB_EXPOSE_TABLE_ADD(buffer, index, val) int(atomicAdd(buffer + index, val))
+	#define LFB_EXPOSE_TABLE_EXCHANGE(buffer, index, val) int(atomicExchange(buffer + index, val))
+#else
+	#if LFB_READONLY
+		#define LFB_EXPOSE_TABLE layout(r32ui) readonly uimageBuffer
+		#define LFB_EXPOSE_TABLE_COHERENT LFB_EXPOSE_TABLE
+		#define LFB_EXPOSE_DATA layout(LFB_IMAGE_TYPE) readonly imageBuffer
+	#else
+		#define LFB_EXPOSE_TABLE layout(r32ui) uimageBuffer
+		#define LFB_EXPOSE_TABLE_COHERENT coherent LFB_EXPOSE_TABLE
+		#define LFB_EXPOSE_DATA layout(LFB_IMAGE_TYPE) imageBuffer
+	#endif
+	#define LFB_EXPOSE_TABLE_GET(buffer, index) int(imageLoad(buffer, index).r)
+	#define LFB_EXPOSE_DATA_GET(buffer, index) LFB_FRAG_TYPE(imageLoad(buffer, index))
+	#define LFB_EXPOSE_TABLE_SET(buffer, index, val) imageStore(nextPtrs, index, uvec4(val, 0U, 0U, 0U));
+	#define LFB_EXPOSE_DATA_SET(buffer, index, val) imageStore(buffer, index, vec4(val LFB_FRAG_PAD));
+	#define LFB_EXPOSE_TABLE_ADD(buffer, index, val) int(imageAtomicAdd(buffer, index, val))
+	#define LFB_EXPOSE_TABLE_EXCHANGE(buffer, index, val) int(imageAtomicExchange(buffer, index, val).r)
 #endif
 
 #define LFB_SIZE(suffix) lfbInfo##suffix.size

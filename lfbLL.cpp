@@ -144,16 +144,19 @@ bool LFB_LL::setUniforms(Shader& program, std::string suffix)
 	//int dataIndex = program.unique("image", dataName);
 	//printf("%s: %i %i %i\n", suffix.c_str(), headIndex, nextIndex, dataIndex);
 	//headPtrs->bind(headIndex, headName.c_str(), program, true, writing);
-	program.set(headName, *headPtrs);
+	
+	int exposeAs = bindless ? Shader::BINDLESS : Shader::IMAGE_UNIT;
+	
+	program.set(exposeAs, headName, *headPtrs);
 	if (nextPtrs->object)
-		program.set(nextName, *nextPtrs);
+		program.set(exposeAs, nextName, *nextPtrs);
 		//nextPtrs->bind(nextIndex, nextName.c_str(), program, !writing, writing);
 	if (data->object)
-		program.set(dataName, *data);
+		program.set(exposeAs, dataName, *data);
 		//data->bind(dataIndex, dataName.c_str(), program, !writing, true);
 	
 	if (*counts)
-		program.set(countsName, *counts);
+		program.set(exposeAs, countsName, *counts);
 	
 	return true;
 }

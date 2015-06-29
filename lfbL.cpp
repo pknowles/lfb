@@ -183,19 +183,21 @@ bool LFB_L::setUniforms(Shader& program, std::string suffix)
 	if (size2D.x > 0)
 		glUniform2i(glGetUniformLocation(program, (infoStructName + suffix + ".size").c_str()), size2D.x, size2D.y);
 	glUniform1i(glGetUniformLocation(program, (infoStructName + suffix + ".depthOnly").c_str()), (state==FIRST_PASS?1:0));
-		
+	
+	int exposeAs = bindless ? Shader::BINDLESS : Shader::IMAGE_UNIT;
+	
 	if (state != SORTING)
-		program.set(offsetsName, *offsets);
+		program.set(exposeAs, offsetsName, *offsets);
 		//offsets->bind(program.unique("image", offsetsName), offsetsName.c_str(), program, true, writing);
 	if (data->size() > 0)
-		program.set(dataName, *data);
+		program.set(exposeAs, dataName, *data);
 		//data->bind(program.unique("image", dataName), dataName.c_str(), program, !writing, writing);
 	
 	if (globalSort)
 	{
 		if (state == SORTING || state == SECOND_PASS)
 			if (ids->size() > 0)
-				program.set(idsName, *ids);
+				program.set(exposeAs, idsName, *ids);
 				//ids->bind(program.unique("image", idsName), idsName.c_str(), program, true, writing);
 	}
 	
@@ -461,7 +463,7 @@ bool LFB_L::save(std::string filename) const
 					break;
 			}
 		}
-		assert(shuffled.size()*sizeof(float) == datSize);
+		assert((int)shuffled.size()*(int)sizeof(float) == (int)(int)(int)datSize); //happy yet?
 	}
 	
 	if (enableCompression)

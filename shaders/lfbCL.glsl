@@ -19,17 +19,29 @@ struct LFBTmp
 	int i;
 };
 
-#define LFB_TMP_CONSTRUCTOR LFBTmp(0, 0, 0, 0, -1)
-
-#if LFB_READONLY
-#define OFFSETS_TYPE layout(size1x32) readonly uimageBuffer
-#define DATA_TYPE layout(r32f) readonly imageBuffer
+//Seems to be faster to interleave fragment attributes too, so we pack using floats rather than LFB_TYPE
+#undef LFB_EXPOSE_DATA
+#undef LFB_EXPOSE_DATA_GET
+#undef LFB_EXPOSE_DATA_SET
+#if LFB_BINDLESS
+	#define LFB_EXPOSE_DATA float*
+	#define LFB_EXPOSE_DATA_GET(buffer, index) buffer[index]
+	#define LFB_EXPOSE_DATA_SET(buffer, index, val) buffer[index] = val
 #else
-#define OFFSETS_TYPE layout(size1x32) coherent uimageBuffer
-#define DATA_TYPE layout(r32f) imageBuffer
+	#if LFB_READONLY
+		#define LFB_EXPOSE_DATA layout(r32f) readonly imageBuffer
+	#else
+		#define LFB_EXPOSE_DATA layout(r32f) imageBuffer
+	#endif
+	#define LFB_EXPOSE_DATA_GET(buffer, index) imageLoad(buffer, index).r
+	#define LFB_EXPOSE_DATA_SET(buffer, index, val) imageStore(buffer, index, vec4(val, 0.0, 0.0, 0.0));
 #endif
 
-#define COUNTS_TYPE layout(size1x32) coherent uimageBuffer
+#define LFB_TMP_CONSTRUCTOR LFBTmp(0, 0, 0, 0, -1)
+
+#define OFFSETS_TYPE LFB_EXPOSE_TABLE
+#define COUNTS_TYPE LFB_EXPOSE_TABLE_COHERENT
+#define DATA_TYPE LFB_EXPOSE_DATA
 
 #define LFB_UNIFORMS in OFFSETS_TYPE offsets, in COUNTS_TYPE counts, DATA_TYPE data
 
@@ -48,43 +60,43 @@ LFBTmp lfbTmp##suffix = LFB_TMP_CONSTRUCTOR;
 	lfbTmp##suffix.fragIndex = (index); \
 	int run = lfbTmp##suffix.fragIndex % LFB_RAGGED_INTERLEAVE; \
 	int base = (lfbTmp##suffix.fragIndex / LFB_RAGGED_INTERLEAVE); \
-	int baseOffset = int(imageLoad(offsets##suffix, lfbInfo##suffix.interleaveOffset + base).r); \
+	int baseOffset = LFB_EXPOSE_TABLE_GET(offsets##suffix, lfbInfo##suffix.interleaveOffset + base); \
 	baseOffset *= LFB_RAGGED_INTERLEAVE; \
 	lfbTmp##suffix.fragOffset = baseOffset * LFB_FRAG_SIZE + run; \
-	lfbTmp##suffix.fragCount = int(imageLoad(counts##suffix, lfbTmp##suffix.fragIndex).r); \
+	lfbTmp##suffix.fragCount = LFB_EXPOSE_TABLE_GET(counts##suffix, lfbTmp##suffix.fragIndex); \
 }
 
 #define LFB_COUNT(suffix) lfbTmp##suffix.fragCount
 
 #define LFB_COUNT_AT(suffix, index) \
-	int(imageLoad(counts##suffix, (index)).r)
+	LFB_EXPOSE_TABLE_GET(counts##suffix, (index))
 
 
 #if LFB_FRAG_SIZE == 1
 #define LFB_LOAD(suffix, index) \
 	LFB_FRAG_TYPE( \
-		imageLoad(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+0)).x \
+		LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+0)) \
 	)
 #elif LFB_FRAG_SIZE == 2
 #define LFB_LOAD(suffix, index) \
 	LFB_FRAG_TYPE( \
-		imageLoad(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+0)).x, \
-		imageLoad(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+1)).x \
+		LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+0)), \
+		LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+1)) \
 	)
 #elif LFB_FRAG_SIZE == 3
 #define LFB_LOAD(suffix, index) \
 	LFB_FRAG_TYPE( \
-		imageLoad(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+0)).x, \
-		imageLoad(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+1)).x, \
-		imageLoad(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+2)).x \
+		LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+0)), \
+		LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+1)), \
+		LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+2)) \
 	)
 #elif LFB_FRAG_SIZE == 4
 #define LFB_LOAD(suffix, index) \
 	LFB_FRAG_TYPE( \
-		imageLoad(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+0)).x, \
-		imageLoad(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+1)).x, \
-		imageLoad(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+2)).x, \
-		imageLoad(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+3)).x \
+		LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+0)), \
+		LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+1)), \
+		LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+2)), \
+		LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + LFB_RAGGED_INTERLEAVE * ((index)*LFB_FRAG_SIZE+3)) \
 	)
 #endif
 
@@ -101,14 +113,14 @@ LFBTmp lfbTmp##suffix = LFB_TMP_CONSTRUCTOR;
 #if !LFB_READONLY
 void _addFragment(LFBInfo info, inout LFBTmp tmp, LFB_UNIFORMS, int fragIndex, LFB_FRAG_TYPE fragDat)
 {
-	int i = int(imageAtomicAdd(counts, fragIndex, 1U));
+	int i = LFB_EXPOSE_TABLE_ADD(counts, fragIndex, 1U);
 
 	if (info.depthOnly == 0)
 	{
 		int run = fragIndex % LFB_RAGGED_INTERLEAVE;
 		int base = (fragIndex / LFB_RAGGED_INTERLEAVE);
 	
-		uint offset = imageLoad(offsets, info.interleaveOffset + base).r;
+		int offset = LFB_EXPOSE_TABLE_GET(offsets, info.interleaveOffset + base);
 		//uint maxCount = imageLoad(offsets, info.interleaveOffset + base + 1).r - offset;
 		offset *= LFB_RAGGED_INTERLEAVE;
 	
@@ -119,15 +131,15 @@ void _addFragment(LFBInfo info, inout LFBTmp tmp, LFB_UNIFORMS, int fragIndex, L
 		}
 		//else
 		{
-			imageStore(data, int(offset)*LFB_FRAG_SIZE + run + LFB_RAGGED_INTERLEAVE * (i*LFB_FRAG_SIZE+0), vec4(fragDat.x,0,0,0));
+			LFB_EXPOSE_DATA_SET(data, offset*LFB_FRAG_SIZE + run + LFB_RAGGED_INTERLEAVE * (i*LFB_FRAG_SIZE+0), fragDat.x);
 			#if LFB_FRAG_SIZE > 1
-			imageStore(data, int(offset)*LFB_FRAG_SIZE + run + LFB_RAGGED_INTERLEAVE * (i*LFB_FRAG_SIZE+1), vec4(fragDat.y,0,0,0));
+			LFB_EXPOSE_DATA_SET(data, offset*LFB_FRAG_SIZE + run + LFB_RAGGED_INTERLEAVE * (i*LFB_FRAG_SIZE+1), fragDat.y);
 			#endif
 			#if LFB_FRAG_SIZE > 2
-			imageStore(data, int(offset)*LFB_FRAG_SIZE + run + LFB_RAGGED_INTERLEAVE * (i*LFB_FRAG_SIZE+2), vec4(fragDat.z,0,0,0));
+			LFB_EXPOSE_DATA_SET(data, offset*LFB_FRAG_SIZE + run + LFB_RAGGED_INTERLEAVE * (i*LFB_FRAG_SIZE+2), fragDat.z);
 			#endif
 			#if LFB_FRAG_SIZE > 3
-			imageStore(data, int(offset)*LFB_FRAG_SIZE + run + LFB_RAGGED_INTERLEAVE * (i*LFB_FRAG_SIZE+3), vec4(fragDat.w,0,0,0));
+			LFB_EXPOSE_DATA_SET(data, offset*LFB_FRAG_SIZE + run + LFB_RAGGED_INTERLEAVE * (i*LFB_FRAG_SIZE+3), fragDat.w);
 			#endif
 		
 			//uint nodeAlloc = atomicCounterIncrement(allocOffset);

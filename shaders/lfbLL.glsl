@@ -18,20 +18,12 @@ struct LFBTmp
 
 #define LFB_TMP_CONSTRUCTOR LFBTmp(0, 0, -1)
 
-#if LFB_READONLY
-#define DECLARE_ALLOC_COUNTER(name)
-#define HEAD_TYPE layout(size1x32) readonly uimageBuffer
-#define NEXT_TYPE layout(size1x32) readonly uimageBuffer
-#define COUNTS_TYPE layout(size1x32) readonly uimageBuffer
-#define DATA_TYPE layout(LFB_IMAGE_TYPE) readonly imageBuffer
-#else
-#define HEAD_TYPE layout(size1x32) coherent uimageBuffer
-#define NEXT_TYPE layout(size1x32) uimageBuffer
-#define COUNTS_TYPE layout(size1x32) uimageBuffer
-#define DATA_TYPE layout(LFB_IMAGE_TYPE) imageBuffer
-#endif
+#define HEAD_TYPE LFB_EXPOSE_TABLE_COHERENT
+#define NEXT_TYPE LFB_EXPOSE_TABLE
+#define COUNTS_TYPE LFB_EXPOSE_TABLE
+#define DATA_TYPE LFB_EXPOSE_DATA
 
-//I have no idea how to deal with hard coded layout(binding = n) atomic counters. for the moment this is simply not supported!
+//I have no idea how to deal with hard coded layout(binding = n) atomic counters. for the moment writing to two LL-LFBs at once is simply not supported!
 layout(binding = 0, offset = 0) uniform atomic_uint allocOffset;
 
 #define LFB_UNIFORMS in HEAD_TYPE headPtrs, NEXT_TYPE nextPtrs, COUNTS_TYPE counts, DATA_TYPE data
@@ -50,33 +42,33 @@ LFBTmp lfbTmp##suffix = LFB_TMP_CONSTRUCTOR;
 #if LFB_REQUIRE_COUNTS
 #define LFB_INIT(suffix, index) \
 	lfbTmp##suffix.fragIndex = (index); \
-	lfbTmp##suffix.fragCount = int(imageLoad(counts##suffix, lfbTmp##suffix.fragIndex).r);
+	lfbTmp##suffix.fragCount = LFB_EXPOSE_TABLE_GET(counts##suffix, lfbTmp##suffix.fragIndex);
 #define LFB_COUNT(suffix) lfbTmp##suffix.fragCount
 #define LFB_COUNT_AT(suffix, index) \
-	int(imageLoad(counts##suffix, (index)).r)
+	LFB_EXPOSE_TABLE_GET(counts##suffix, index)
 #else
 #define LFB_INIT(suffix, index) \
 	lfbTmp##suffix.fragIndex = (index);
 #endif
 
-#define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.node = int(imageLoad(headPtrs##suffix, lfbTmp##suffix.fragIndex).r)
+#define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.node = LFB_EXPOSE_TABLE_GET(headPtrs##suffix, lfbTmp##suffix.fragIndex)
 #define LFB_ITER_CONDITION(suffix) (lfbTmp##suffix.node != 0)
-#define LFB_ITER_INC(suffix) lfbTmp##suffix.node = int(imageLoad(nextPtrs##suffix, lfbTmp##suffix.node).r)
-#define LFB_GET(suffix) LFB_FRAG_TYPE(imageLoad(data##suffix, lfbTmp##suffix.node));
-#define LFB_SET(suffix, frag) imageStore(data##suffix, lfbTmp##suffix.node, vec4(frag LFB_FRAG_PAD));
+#define LFB_ITER_INC(suffix) lfbTmp##suffix.node = LFB_EXPOSE_TABLE_GET(nextPtrs##suffix, lfbTmp##suffix.node)
+#define LFB_GET(suffix) LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.node);
+#define LFB_SET(suffix, frag) LFB_EXPOSE_DATA_SET(data##suffix, lfbTmp##suffix.node, frag);
 
 #if !LFB_READONLY
 void _addFragment(LFBInfo info, inout LFBTmp tmp, LFB_UNIFORMS, int fragIndex, LFB_FRAG_TYPE fragData)
 {
-	uint nodeAlloc = atomicCounterIncrement(allocOffset);
+	int nodeAlloc = int(atomicCounterIncrement(allocOffset));
 	if (nodeAlloc < info.fragAlloc) //don't overflow
 	{
-		uint currentHead = imageAtomicExchange(headPtrs, fragIndex, nodeAlloc).r;
-		imageStore(nextPtrs, int(nodeAlloc), uvec4(currentHead));
-		imageStore(data, int(nodeAlloc), vec4(fragData LFB_FRAG_PAD));
+		int currentHead = LFB_EXPOSE_TABLE_EXCHANGE(headPtrs, fragIndex, nodeAlloc);
+		LFB_EXPOSE_TABLE_SET(nextPtrs, nodeAlloc, currentHead);
+		LFB_EXPOSE_DATA_SET(data, nodeAlloc, fragData);
 		
 		#if LFB_REQUIRE_COUNTS
-		imageAtomicAdd(counts, fragIndex, 1U);
+		LFB_EXPOSE_TABLE_ADD(counts, fragIndex, 1U);
 		#endif
 	}
 }

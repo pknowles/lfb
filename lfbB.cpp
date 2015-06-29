@@ -105,12 +105,14 @@ bool LFB_B::setUniforms(Shader& program, std::string suffix)
 	std::string countsName = "counts" + suffix;
 	std::string dataName = "data" + suffix;
 	
+	int exposeAs = bindless ? Shader::BINDLESS : Shader::IMAGE_UNIT;
+	
 	//bind(bind point index, name, shader program, bool read, bool write)
 	//counts->bind(program.unique("image", countsName), countsName.c_str(), program, true, writing);
-	program.set(countsName, *counts);
+	program.set(exposeAs, countsName, *counts);
 
 	//data->bind(program.unique("image", dataName), dataName.c_str(), program, !writing, true);
-	program.set(dataName, *data);
+	program.set(exposeAs, dataName, *data);
 	
 	CHECKERROR;
 	return true;
@@ -118,7 +120,7 @@ bool LFB_B::setUniforms(Shader& program, std::string suffix)
 bool LFB_B::begin()
 {
 	CHECKERROR;
-	if (profile) profile->begin();
+	//if (profile) profile->begin();
 	
 	LFBBase::begin();
 	

@@ -128,17 +128,19 @@ bool LFB_CL::setUniforms(Shader& program, std::string suffix)
 		glUniform2i(glGetUniformLocation(program, (infoStructName + suffix + ".size").c_str()), size2D.x, size2D.y);
 	glUniform1i(glGetUniformLocation(program, (infoStructName + suffix + ".depthOnly").c_str()), (state==FIRST_PASS?1:0));
 	
+	int exposeAs = bindless ? Shader::BINDLESS : Shader::IMAGE_UNIT;
+	
 	//if (state != SORTING)
 	{
 		//counts->bind(program.unique("image", countsName), countsName.c_str(), program, true, writing);
 		//offsets->bind(program.unique("image", offsetsName), offsetsName.c_str(), program, true, writing);
-		program.set(countsName, *counts);
-		program.set(offsetsName, *offsets);
+		program.set(exposeAs, countsName, *counts);
+		program.set(exposeAs, offsetsName, *offsets);
 	}
 	if (data->size() > 0)
 	{
 		//data->bind(program.unique("image", dataName), dataName.c_str(), program, !writing, writing);
-		program.set(dataName, *data);
+		program.set(exposeAs, dataName, *data);
 	}
 	
 	//glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, *alloc);

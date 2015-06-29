@@ -34,6 +34,7 @@ LFB_LL::LFB_LL()
 	nextPtrs = new TextureBuffer(GL_R32UI);
 	counts = new TextureBuffer(GL_R32UI);
 	data = new TextureBuffer(lfbDataType);
+	lfbNeedsCounts = false;
 }
 LFB_LL::~LFB_LL()
 {
@@ -58,6 +59,7 @@ bool LFB_LL::_resize(vec2i size)
 	
 	memory["Counter"] = alloc->size();
 	memory["Head Ptrs"] = headPtrs->size();
+	memory["Counts"] = counts->size();
 	
 	return true;
 }
@@ -97,7 +99,7 @@ void LFB_LL::initBuffers()
 	//zero the head pointers, or rather, set each pointer to NULL
 	zeroBuffer(headPtrs);
 	
-	if (computeCounts)
+	if (computeCounts || lfbNeedsCounts)
 	{
 		counts->resize(sizeof(unsigned int) * totalPixels);
 		zeroBuffer(counts);
@@ -112,7 +114,7 @@ void LFB_LL::setDefines(Shader& program)
 {
 	LFBBase::setDefines(program);
 	program.define("LFB_METHOD_H", "lfbLL.glsl");
-	program.define("LFB_REQUIRE_COUNTS", computeCounts);
+	program.define("LFB_REQUIRE_COUNTS", computeCounts || lfbNeedsCounts);
 }
 bool LFB_LL::setUniforms(Shader& program, std::string suffix)
 {

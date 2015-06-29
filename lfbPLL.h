@@ -21,10 +21,9 @@ protected:
 	
 	//counts give offsets within each page. after gaining a semaphore lock, the page index is count % pageSize.
 	//if this index is zero, the current shader must allocate a new page.
-	TextureBuffer* counts;
+	//TextureBuffer* counts; // already defined in LFB_LL
 	
 	virtual bool resizePool(int allocs); //a hook to increase allocs to allocs * pageSize
-	virtual void initBuffers(); //zeroes counts
 	
 	virtual bool _resize(vec2i size);
 public:
@@ -36,7 +35,6 @@ public:
 	//NOTE: LFB_PLL->end() will generally overestimate
 	//fragment count as the exact number is unknown
 	virtual std::string getName();
-	virtual bool getDepthHistogram(std::vector<unsigned int>& histogram);
 };
 
 #endif

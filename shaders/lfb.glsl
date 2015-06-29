@@ -120,12 +120,9 @@ LFB_FRAG_TYPE make_lfb_data(vec2 d)
 #include "LFB_METHOD_H" //Shader::define() will substitute the include string here. thanks, freetype2 for the idea
 
 #define LFB_FOREACH(suffix, frag) \
-for ( \
 	LFB_ITER_BEGIN(suffix); \
-	LFB_ITER_CONDITION(suffix); \
-	LFB_ITER_INC(suffix) \
-	) \
-{ \
-	LFB_FRAG_TYPE frag = LFB_GET(suffix);
+	for (; LFB_ITER_CONDITION(suffix); LFB_ITER_INC(suffix) ) \
+	{ \
+		LFB_FRAG_TYPE frag = LFB_GET(suffix);
 
 

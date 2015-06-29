@@ -54,8 +54,8 @@ LFBTmp lfbTmp##suffix = LFB_TMP_CONSTRUCTOR;
 #define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.node = LFB_EXPOSE_TABLE_GET(headPtrs##suffix, lfbTmp##suffix.fragIndex)
 #define LFB_ITER_CONDITION(suffix) (lfbTmp##suffix.node != 0)
 #define LFB_ITER_INC(suffix) lfbTmp##suffix.node = LFB_EXPOSE_TABLE_GET(nextPtrs##suffix, lfbTmp##suffix.node)
-#define LFB_GET(suffix) LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.node);
-#define LFB_SET(suffix, frag) LFB_EXPOSE_DATA_SET(data##suffix, lfbTmp##suffix.node, frag);
+#define LFB_GET(suffix) LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.node)
+#define LFB_SET(suffix, frag) LFB_EXPOSE_DATA_SET(data##suffix, lfbTmp##suffix.node, frag)
 
 #if !LFB_READONLY
 void _addFragment(LFBInfo info, inout LFBTmp tmp, LFB_UNIFORMS, int fragIndex, LFB_FRAG_TYPE fragData)

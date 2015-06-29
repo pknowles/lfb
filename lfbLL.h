@@ -24,6 +24,7 @@ public: //for cuda testing
 	virtual bool resizePool(int allocs); //resizes data/nextPtrs. useful virtual for linked pages
 	virtual void initBuffers(); //zeroes buffers - is potentially called from count() as well as begin()
 	virtual bool _resize(vec2i size);
+	bool lfbNeedsCounts; //used by LFB_PLL
 public:
 	LFB_LL();
 	virtual ~LFB_LL();

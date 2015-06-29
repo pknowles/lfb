@@ -390,8 +390,8 @@ bool LFB_L::save(std::string filename) const
 	const int LAYOUT_VAL_PIXELS = 0x000; //63% data compression
 	const int LAYOUT_VAL_SHEETS = 0x001; //54% data compression
 	
-	bool enableCompression = true;
-	int layout = LAYOUT_VAL_SHEETS;
+	bool enableCompression = false;
+	int layout = LAYOUT_VAL_PIXELS;
 	
 	//header
 	ofile.write("LFB", 3);

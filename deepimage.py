@@ -1,9 +1,16 @@
-#!/usr/bin/python
+#!/usr/bin/pypy
 
 import sys
 import zlib
 from struct import pack, unpack
-import numpy as np
+#import numpy as np
+import time
+
+def cumsum(l):
+    t = 0
+    for x in l:
+        t += x
+        yield t
 
 class DeepImage:
 	def __init__(self):
@@ -14,6 +21,7 @@ class DeepImage:
 		self.data = []
 		self.info = "uninitialized"
 		self.format = 'BBBBf'
+		self.times = []
 	def __str__(self):
 		return "LFB("+str(self.x)+", "+str(self.y)+": "+self.info+")"
 	def __getitem__(self, index):
@@ -29,7 +37,8 @@ class DeepImage:
 	def load(self, f):
 		if isinstance(f, basestring):
 			f = open(f, 'rb')
-			
+		
+		self.times = [(time.time(), "start")]
 		check = unpack('3s', f.read(3))[0]
 		if check != "LFB":
 			raise IOError("File not an LFB")
@@ -41,6 +50,8 @@ class DeepImage:
 		attribs = unpack('%ii' % header_len, f.read(header_len * 4))
 		attribs = dict([attribs[i:i+2] for i in xrange(0, len(attribs), 2)])
 	
+		self.times += [(time.time(), "read header")]
+		
 		COMPRESS_KEY = 0x001
 		COMPRESS_VAL_NONE = 0x0
 		COMPRESS_VAL_ZLIB = 0x1
@@ -53,20 +64,35 @@ class DeepImage:
 			
 		if COMPRESS_KEY not in attribs or attribs[COMPRESS_KEY] == COMPRESS_VAL_NONE:
 			self.info += "uncompressed"
-			self.counts = unpack('%iI' % pixels, f.read(pixels*4))
-			self.offsets = np.cumsum((0,) + self.counts).tolist()[:-1]
+			counts_data = f.read(pixels*4)
+			self.times += [(time.time(), "read pixels")]
+			self.counts = unpack('%iI' % pixels, counts_data)
+			self.times += [(time.time(), "unpack pixels")]
+			#self.offsets = np.cumsum((0,) + self.counts).tolist()[:-1]
+			self.offsets = list(cumsum((0,) + self.counts))[:-1]
 			self.num_fragments = self.offsets[pixels-1] + self.counts[-1]
+			self.times += [(time.time(), "sum pixels")]
 			data_raw = f.read(self.num_fragments*self.stride)
+			self.times += [(time.time(), "read fragments")]
 		elif attribs[COMPRESS_KEY] == COMPRESS_VAL_ZLIB:
 			self.info += "compressed"
 			count_size = unpack('q', f.read(8))[0]
-			counts_raw = zlib.decompress(f.read(count_size))
+			counts_data = f.read(count_size)
+			self.times += [(time.time(), "read pixels")]
+			counts_raw = zlib.decompress(counts_data)
+			self.times += [(time.time(), "decompress pixels")]
 			assert len(counts_raw) == pixels*4
 			self.counts = unpack('%iI' % pixels, counts_raw)
-			self.offsets = np.cumsum((0,) + self.counts).tolist()[:-1]
+			self.times += [(time.time(), "unpack pixels")]
+			#self.offsets = np.cumsum((0,) + self.counts).tolist()[:-1]
+			self.offsets = list(cumsum((0,) + self.counts))[:-1]
 			self.num_fragments = self.offsets[pixels-1] + self.counts[-1]
+			self.times += [(time.time(), "sum pixels")]
 			data_size = unpack('q', f.read(8))[0]
-			data_raw = zlib.decompress(f.read(data_size))
+			frag_data = f.read(data_size)
+			self.times += [(time.time(), "read fragments")]
+			data_raw = zlib.decompress(frag_data)
+			self.times += [(time.time(), "decompress fragments")]
 			assert len(data_raw) == self.num_fragments*self.stride
 		else:
 			raise IOError("Invalid COMPRESS_VAL")
@@ -92,11 +118,18 @@ class DeepImage:
 			assert "" not in tmp
 			data_raw = "".join(tmp)
 			assert len(data_raw) == self.num_fragments*self.stride
+			self.times += [(time.time(), "reorder fragments")]
 		else:
 			raise IOError("Invalid LAYOUT_VAL")
 		
 		self.data = [data_raw[i:i+self.stride] for i in xrange(0, len(data_raw), self.stride)]
+		self.times += [(time.time(), "list-ize fragments")]
 		assert len(self.data) == self.num_fragments
+	
+	def printTimes(self):
+		for i in range(1, len(self.times)):
+			print "%s: %.2fms" % (self.times[i][1], 1000.0*(self.times[i][0] - self.times[i-1][0]))
+		print "total: %.2fms" % (1000.0 * (self.times[-1][0] - self.times[0][0]))
 
 def load_deep_image(f):
 	img = DeepImage()
@@ -106,6 +139,7 @@ def load_deep_image(f):
 if __name__ == '__main__':
 	img = load_deep_image(sys.argv[1])
 	print img
+	img.printTimes()
 
 
 

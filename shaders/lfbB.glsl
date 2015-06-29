@@ -64,7 +64,7 @@ lfbTmp##suffix.fragsOffset = lfbTmp##suffix.fragIndex * lfbInfo##suffix.dataDept
 
 #define LFB_LOAD(suffix, index) LFB_FRAG_TYPE(imageLoad(data##suffix, lfbTmp##suffix.fragsOffset + (index)))
 #define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.i = 0
-#define LFB_ITER_CONDITION(suffix) lfbTmp##suffix.i < lfbTmp##suffix.fragCount
+#define LFB_ITER_CONDITION(suffix) (lfbTmp##suffix.i < lfbTmp##suffix.fragCount)
 #define LFB_ITER_INC(suffix) ++lfbTmp##suffix.i
 #define LFB_GET(suffix) LFB_LOAD(suffix, lfbTmp##suffix.fragCount-1-lfbTmp##suffix.i)
 

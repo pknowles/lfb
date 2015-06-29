@@ -89,7 +89,7 @@ LFBTmp lfbTmp##suffix = LFB_TMP_CONSTRUCTOR;
 #endif
 
 #define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.i = 0
-#define LFB_ITER_CONDITION(suffix) lfbTmp##suffix.i < lfbTmp##suffix.fragCount
+#define LFB_ITER_CONDITION(suffix) (lfbTmp##suffix.i < lfbTmp##suffix.fragCount)
 #define LFB_ITER_INC(suffix) ++lfbTmp##suffix.i
 
 #if LFB_L_REVERSE == 1

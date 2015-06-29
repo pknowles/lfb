@@ -64,7 +64,7 @@ lfbTmp##suffix.fragCount = min(lfbTmp##suffix.fragCount, MAX_FRAGS);
 	imageStore(data##suffix, lfbTmp##suffix.fragOffset + (index), vec4(dat LFB_FRAG_PAD))
 
 #define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.i = 0
-#define LFB_ITER_CONDITION(suffix) lfbTmp##suffix.i < lfbTmp##suffix.fragCount
+#define LFB_ITER_CONDITION(suffix) (lfbTmp##suffix.i < lfbTmp##suffix.fragCount)
 #define LFB_ITER_INC(suffix) ++lfbTmp##suffix.i
 
 #if LFB_L_REVERSE == 1

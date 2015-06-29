@@ -60,7 +60,7 @@ LFBTmp lfbTmp##suffix = LFB_TMP_CONSTRUCTOR;
 #endif
 
 #define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.node = int(imageLoad(headPtrs##suffix, lfbTmp##suffix.fragIndex).r)
-#define LFB_ITER_CONDITION(suffix) lfbTmp##suffix.node != 0
+#define LFB_ITER_CONDITION(suffix) (lfbTmp##suffix.node != 0)
 #define LFB_ITER_INC(suffix) lfbTmp##suffix.node = int(imageLoad(nextPtrs##suffix, lfbTmp##suffix.node).r)
 #define LFB_GET(suffix) LFB_FRAG_TYPE(imageLoad(data##suffix, lfbTmp##suffix.node));
 #define LFB_SET(suffix, frag) imageStore(data##suffix, lfbTmp##suffix.node, vec4(frag LFB_FRAG_PAD));

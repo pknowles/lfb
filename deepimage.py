@@ -1,16 +1,30 @@
-#!/usr/bin/pypy
+#!/usr/bin/python
 
+# /usr/bin/pypy
+
+import array
 import sys
 import zlib
 from struct import pack, unpack
 #import numpy as np
 import time
 
+try:
+	from PIL import Image
+except ImportError:
+	import Image
+
 def cumsum(l):
     t = 0
     for x in l:
         t += x
         yield t
+
+def over(D, S, a = None):
+	if not a:
+		a = 255
+	t = 255 - a
+	return ((D[0]*t + S[0]*a)//255, (D[1]*t + S[1]*a)//255, (D[2]*t + S[2]*a)//255)
 
 class DeepImage:
 	def __init__(self):
@@ -23,17 +37,18 @@ class DeepImage:
 		self.format = 'BBBBf'
 		self.times = []
 	def __str__(self):
-		return "LFB("+str(self.x)+", "+str(self.y)+": "+self.info+")"
+		return "LFB("+str(self.x)+"x"+str(self.y)+": "+self.info+")"
 	def __getitem__(self, index):
 		if isinstance(index, (tuple, list)):
-			index = index[0] * index[1]
+			index = index[0] + index[1] * self.x
 		if not isinstance(index, int):
 			raise IndexError("Index must be 2D tuple, list or 1D int")
 		if index < 0 or index >= self.x * self.y:
 			raise IndexError("Index " + str(index) + " is out of bounds")
 		a = self.offsets[index]
 		b = self.offsets[index] + self.counts[index]
-		return map(lambda x: unpack(self.format, x), self.data[a:b])
+		return self.data[a:b]
+		#return map(lambda x: unpack(self.format, x), self.data[a:b])
 	def load(self, f):
 		if isinstance(f, basestring):
 			f = open(f, 'rb')
@@ -122,25 +137,67 @@ class DeepImage:
 		else:
 			raise IOError("Invalid LAYOUT_VAL")
 		
-		self.data = [data_raw[i:i+self.stride] for i in xrange(0, len(data_raw), self.stride)]
+		if True:
+			#run in chunks or we run out of memory
+			fstrides = tuple(array.array(f).itemsize for f in self.format)
+			fstride = sum(fstrides)
+			chunksize = fstride*1024*100
+			chunks = (len(data_raw) // chunksize) + (0 if len(data_raw) % chunksize == 0 else 1)
+			self.data = []
+			for i in xrange(chunks):
+				self.data += self.unpackChunk(data_raw[i*chunksize:min(len(data_raw),(i+1)*chunksize)])
+		else:
+			self.data = [data_raw[i:i+self.stride] for i in xrange(0, len(data_raw), self.stride)]
+			self.data = map(lambda x: unpack(self.format, x), self.data)
+		
 		self.times += [(time.time(), "list-ize fragments")]
 		assert len(self.data) == self.num_fragments
+	
+	def unpackChunk(self, data_raw):
+		#python is retarded here
+		fstrides = tuple(array.array(f).itemsize for f in self.format)
+		fstride = sum(fstrides)
+		foffset = list(cumsum((0,) + fstrides))[:-1]
+		flen = len(self.format)
+		fdat = {}
+		for f in set(self.format):
+			fdat[f] = array.array(f, data_raw)
+		fsplit = []
+		for i, f in enumerate(self.format):
+			tstride = array.array(f).itemsize
+			ioffset = foffset[i] / tstride
+			istride = fstride / tstride
+			fsplit += [fdat[f][ioffset::istride]]
+			
+		return zip(*fsplit)
 	
 	def printTimes(self):
 		for i in range(1, len(self.times)):
 			print "%s: %.2fms" % (self.times[i][1], 1000.0*(self.times[i][0] - self.times[i-1][0]))
 		print "total: %.2fms" % (1000.0 * (self.times[-1][0] - self.times[0][0]))
 
-def load_deep_image(f):
-	img = DeepImage()
-	img.load(f)
-	return img
+	def compositeAndSave(self, filename):
+		img = Image.new('RGB', (dimg.x, dimg.y))
+		pixels = img.load()
+	
+		for y in range(dimg.y):
+			for x in range(dimg.x):
+				dpixel = dimg[x, y]
+				out = (255, 255, 255)
+				for c in sorted(dpixel, reverse=True, key=lambda x: x[4]):
+					out = over(out, c[0:4], a = 255//8)
+				pixels[x, dimg.y-y-1] = out
+		self.times += [(time.time(), "composite")]
+			
+		img.save(filename)
+		self.times += [(time.time(), "save")]
 
 if __name__ == '__main__':
-	img = load_deep_image(sys.argv[1])
-	print img
-	img.printTimes()
-
+	dimg = DeepImage()
+	dimg.load(sys.argv[1])
+	print dimg
+	dimg.compositeAndSave("composite.png")
+	dimg.printTimes()
 
 
 

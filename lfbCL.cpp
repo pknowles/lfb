@@ -299,7 +299,7 @@ void LFB_CL::preparePack()
 	//order->resize(allocFragments * 2 * sizeof(unsigned int));
 	//zeroBuffer(order);
 }
-int LFB_CL::end()
+size_t LFB_CL::end()
 {
 	//printf("end()\n");
 	glMemoryBarrierEXT(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
@@ -329,7 +329,7 @@ bool LFB_CL::getDepthHistogram(std::vector<unsigned int>& histogram)
 		return LFBBase::getDepthHistogram(histogram);
 	histogram.clear();
 	unsigned int* l = (unsigned int*)counts->map(true, false);
-	for (int i = 0; i < getTotalPixels(); ++i)
+	for (size_t i = 0; i < getTotalPixels(); ++i)
 	{
 		if (histogram.size() <= l[i])
 			histogram.resize(l[i]+1, 0);

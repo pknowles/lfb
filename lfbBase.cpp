@@ -111,7 +111,7 @@ vec2i LFBBase::getPack()
 }
 
 //FIXME: using copy() used to be fast but I don't think it is anymore
-void LFBBase::zeroBuffer(TextureBuffer* buffer, int size)
+void LFBBase::zeroBuffer(TextureBuffer* buffer, size_t size)
 {
 	if (buffer->size() == 0)
 		return; //nothing to do
@@ -164,11 +164,11 @@ void LFBBase::zeroBuffer(TextureBuffer* buffer, int size)
 	zeroes->copy(buffer, 0, 0, size);
 	CHECKERROR;
 }
-int LFBBase::getTotalPixels()
+size_t LFBBase::getTotalPixels()
 {
 	return totalPixels;
 }
-int LFBBase::getTotalFragments()
+size_t LFBBase::getTotalFragments()
 {
 	return totalFragments;
 }
@@ -210,7 +210,7 @@ bool LFBBase::count()
 	state = SECOND_PASS;
 	return false; //is a second pass needed? no by default
 }
-int LFBBase::end()
+size_t LFBBase::end()
 {
 	state = DRAWING;
 	return 0; //number of fragments rendered
@@ -253,8 +253,8 @@ bool LFBBase::useBindlessGraphics(bool enable)
 std::string LFBBase::getMemoryInfo()
 {
 	std::stringstream ret;
-	int total = 0;
-	for (std::map<std::string, int>::iterator it = memory.begin(); it != memory.end(); ++it)
+	size_t total = 0;
+	for (std::map<std::string, size_t>::iterator it = memory.begin(); it != memory.end(); ++it)
 	{
 		total += it->second;
 		ret << it->first << ": " << humanBytes(it->second, false) << std::endl;
@@ -281,7 +281,7 @@ bool LFBBase::setFormat(int f)
 size_t LFBBase::getMemoryUsage()
 {
 	size_t total = 0;
-	std::map<std::string, int>::iterator it;
+	std::map<std::string, size_t>::iterator it;
 	for (it = memory.begin(); it != memory.end(); ++it)
 		total += it->second;
 	return total;

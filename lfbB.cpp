@@ -181,7 +181,7 @@ bool LFB_B::count()
 	//no point resizing or re-rendering
 	return false;
 }
-int LFB_B::end()
+size_t LFB_B::end()
 {
 	LFBBase::end();
 	return totalFragments;
@@ -201,7 +201,7 @@ bool LFB_B::getDepthHistogram(std::vector<unsigned int>& histogram)
 		return LFBBase::getDepthHistogram(histogram);
 	histogram.clear();
 	unsigned int* l = (unsigned int*)counts->map(true, false);
-	for (int i = 0; i < getTotalPixels(); ++i)
+	for (size_t i = 0; i < getTotalPixels(); ++i)
 	{
 		if (histogram.size() <= l[i])
 			histogram.resize(l[i]+1, 0);

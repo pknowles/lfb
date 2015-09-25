@@ -63,10 +63,10 @@ bool LFB_LL::_resize(vec2i size)
 	
 	return true;
 }
-bool LFB_LL::resizePool(int allocs)
+bool LFB_LL::resizePool(size_t allocs)
 {
 	totalFragments = allocs - 1;
-	allocs = mymax(allocs, 32);
+	allocs = mymax(allocs, (size_t)32);
 	
 	//only resize if necessary
 	//comparing using ->size and lfbDataStride allows for changes in lfbDataStride
@@ -118,6 +118,8 @@ void LFB_LL::setDefines(Shader& program)
 }
 bool LFB_LL::setUniforms(Shader& program, std::string suffix)
 {
+	assert(allocFragments < (1<<31)-1); //current GLSL code only supports 32 bit signed int image unit addressing
+	
 	if (!alloc->object || !headPtrs->object)
 		return false;
 	
@@ -135,7 +137,7 @@ bool LFB_LL::setUniforms(Shader& program, std::string suffix)
 	if (size2D.x > 0)
 		program.set(infoStructName + ".size", size2D);
 		//glUniform2i(glGetUniformLocation(program, ().c_str()), size2D.x, size2D.y);
-	program.set(infoStructName + ".fragAlloc", allocFragments);
+	program.set(infoStructName + ".fragAlloc", (int)allocFragments);
 	//glUniform1i(glGetUniformLocation(program, (infoStructName + ".fragAlloc").c_str()), allocFragments);
 	
 	//writing, depending on the state, determines READ_ONLY, WRITE_ONLY and READ_WRITE TextureBuffer data
@@ -227,7 +229,7 @@ bool LFB_LL::count()
 	else
 		return false; //render is done, no second pass needed
 }
-int LFB_LL::end()
+size_t LFB_LL::end()
 {
 	LFBBase::end();
 	glMemoryBarrierEXT(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);

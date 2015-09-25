@@ -40,7 +40,7 @@ public:
 	
 	//NOTE: fragment count may be delayed as a query is used
 	//(possibly a few frames out of date)
-	virtual int end();
+	virtual size_t end();
 	virtual std::string getName();
 	
 	//attempts to change the allocated number of layers in the 3D array. reduced on memory error

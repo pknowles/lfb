@@ -60,19 +60,19 @@ public: //FIXME: for testing
 	
 	bool bindless; //instead of image_load_store, use bindless graphics
 	
-	int totalPixels; //size2D.x * size2D.y
-	int totalFragments; //is not always accurate but will never be less than exact
-	int allocFragments; //data allocated, for some implementations will allocate more to reduce allocation frequency
+	size_t totalPixels; //size2D.x * size2D.y
+	size_t totalFragments; //is not always accurate but will never be less than exact
+	size_t allocFragments; //data allocated, for some implementations will allocate more to reduce allocation frequency
 	
-	void zeroBuffer(TextureBuffer* buffer, int size = 0); //coppies zeros to buffer. if size is positive, only zeroes part of the buffer
+	void zeroBuffer(TextureBuffer* buffer, size_t size = 0); //coppies zeros to buffer. if size is positive, only zeroes part of the buffer
 	
 	virtual bool _resize(vec2i dim) {return false;} //called on begin() when isDirty
 	
 public:
 
-	std::map<std::string, int> memory; //info only
-	int getTotalPixels();
-	int getTotalFragments();
+	std::map<std::string, size_t> memory; //info only
+	size_t getTotalPixels();
+	size_t getTotalFragments();
 	int getMaxFrags();
 
 	//for debugging - to time algorithm steps. point this to an instance
@@ -91,7 +91,7 @@ public:
 	vec2i getPack();
 	virtual bool begin(); //return true to render colour, false for depth only
 	virtual bool count(); //return true to render second pass
-	virtual int end();
+	virtual size_t end();
 	virtual void sort();
 	virtual std::string getName() =0; //just for debugging
 	bool requireCounts(bool enable = true);

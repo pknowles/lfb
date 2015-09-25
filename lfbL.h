@@ -45,7 +45,7 @@ public:
 	virtual bool setUniforms(Shader& program, std::string suffix);
 	virtual bool begin();
 	virtual bool count();
-	virtual int end();
+	virtual size_t end();
 	virtual std::string getName();
 	virtual bool getDepthHistogram(std::vector<unsigned int>& histogram);
 	virtual bool save(std::string filename) const;

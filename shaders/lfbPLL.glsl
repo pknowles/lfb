@@ -81,7 +81,7 @@ int _lfbHash(LFBInfo info, vec2 coord)
 		lfbTmp##suffix.i = lfbTmp##suffix.fragCount - 1; \
 	}
 	
-#define LFB_ITER_CONDITION(suffix) (lfbTmp##suffix.node != 0 && lfbTmp##suffix.i >= imin)
+#define LFB_ITER_CONDITION(suffix) (lfbTmp##suffix.node != 0 && lfbTmp##suffix.i >= lfbTmp##suffix.imin)
 #define LFB_ITER_INC(suffix) \
 	lfbTmp##suffix.node = (lfbTmp##suffix.i-- % LFB_PAGE_SIZE == 0) ? LFB_EXPOSE_TABLE_GET(nextPtrs##suffix, lfbTmp##suffix.node) : lfbTmp##suffix.node
 #define LFB_GET(suffix) \

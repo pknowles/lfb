@@ -318,7 +318,7 @@ bool LFB_L::count()
 	
 	return true; //always need to do a second pass
 }
-int LFB_L::end()
+size_t LFB_L::end()
 {
 	glMemoryBarrierEXT(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
 	if (profile) profile->time("Render");
@@ -351,7 +351,7 @@ bool LFB_L::getDepthHistogram(std::vector<unsigned int>& histogram)
 	histogram.clear();
 	unsigned int* l = (unsigned int*)offsets->map(true, false);
 	unsigned int p = 0;
-	for (int i = 0; i < getTotalPixels(); ++i)
+	for (size_t i = 0; i < getTotalPixels(); ++i)
 	{
 		assert(offsets->size() > i * (int)sizeof(unsigned int));
 		unsigned int v = l[i] - p;
@@ -373,11 +373,11 @@ bool LFB_L::save(std::string filename) const
 	if (!ofile)
 		return false;
 	
-	int pixels = size2D.x * size2D.y;
+	size_t pixels = size2D.x * size2D.y;
 	std::vector<int> counts(pixels);
 	unsigned int* endoffsets = (unsigned int*)offsets->map(true, false);
 	unsigned int p = 0;
-	for (int i = 0; i < pixels; ++i)
+	for (size_t i = 0; i < pixels; ++i)
 	{
 		assert(offsets->size() > i * (int)sizeof(unsigned int));
 		counts[i] = endoffsets[i] - p;
@@ -451,7 +451,7 @@ bool LFB_L::save(std::string filename) const
 			for (int sheet = 0;; ++sheet)
 			{
 				bool found = false;
-				for (int i = 0; i < pixels; ++i)
+				for (size_t i = 0; i < pixels; ++i)
 				{
 					if (counts[i] > sheet) //FIXME: REALLY SLOOOOW!!!
 					{

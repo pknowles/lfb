@@ -139,7 +139,7 @@ void LFBBase::zeroBuffer(TextureBuffer* buffer, size_t size)
 		//zeroes->bind(0, "tozero", shaderZeroes, false, true);
 		shaderZeroes.set("tozero", *zeroes);
 		
-		glDrawArrays(GL_POINTS, 0, zeroes->size() / sizeof(unsigned int));
+		glDrawArrays(GL_POINTS, 0, (int)zeroes->size() / sizeof(unsigned int));
 		glMemoryBarrierEXT(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
 		
 		shaderZeroes.unuse();
@@ -229,7 +229,7 @@ void LFBBase::sort()
 		exit(0);
 	setUniforms(*sorter, "toSort");
 	glEnable(GL_RASTERIZER_DISCARD);
-	glDrawArrays(GL_POINTS, 0, totalPixels);
+	glDrawArrays(GL_POINTS, 0, (GLsizei)totalPixels);
 	glDisable(GL_RASTERIZER_DISCARD);
 	sorter->unuse();
 	CHECKERROR;

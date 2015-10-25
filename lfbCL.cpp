@@ -71,12 +71,12 @@ bool LFB_CL::_resize(vec2i size)
 	assert(totalPixels > 0);
 	
 	//the prefix sum algorithm used requires 2^n data
-	prefixSumsPixels = nextPowerOf2(totalPixels);
+	prefixSumsPixels = nextPowerOf2((int)totalPixels);
 	prefixSumsSize = prefixSumsPixels * 2; // - 1 // need +1 extra int to store the total
 	counts->resize(sizeof(unsigned int) * prefixSumsSize);
 	offsets->resize(sizeof(unsigned int) * prefixSumsSize);
 	
-	int totalTiles = ceil(totalPixels, interleavePixels);
+	int totalTiles = ceil((int)totalPixels, interleavePixels);
 	
 	//shuffle->resize(sizeof(unsigned int) * totalPixels);
 	//strides->resize(sizeof(unsigned int) * totalTiles);

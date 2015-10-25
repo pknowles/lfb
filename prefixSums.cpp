@@ -28,7 +28,7 @@ static int doPrefixSums(TextureBuffer* data, bool inPlace, int offset, int count
 {
 	//read and check data's info
 	assert(data->format == GL_R32UI);
-	int sizeInBytes = data->size();
+	int sizeInBytes = (int)data->size();
 	int sizeInInts = sizeInBytes / sizeof(unsigned int);
 	int sumsSize = 1 << ilog2(sizeInInts);
 	
@@ -195,7 +195,7 @@ unsigned int prefixSumsMip(TextureBuffer* data, int offset, int count)
 
 unsigned int prefixSumsInPlace(TextureBuffer* data)
 {
-	int numInts = data->size() / sizeof(unsigned int) - 1;
+	int numInts = (int)data->size() / sizeof(unsigned int)-1;
 	if (numInts < 1)
 		return 0;
 	return doPrefixSums(data, true, 0, numInts);

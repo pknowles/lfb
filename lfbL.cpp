@@ -102,7 +102,7 @@ void LFB_L::useBlending(bool enable)
 			glGenTextures(1, &blendTex);
 	
 		//set up blendTex
-		prefixSumsHeight = size2D.y + ceil(prefixSumsSize - totalPixels, size2D.x);
+		prefixSumsHeight = size2D.y + ceil(prefixSumsSize - (int)totalPixels, size2D.x);
 		assert(prefixSumsHeight * size2D.x >= prefixSumsSize);
 		glBindTexture(GL_TEXTURE_2D, blendTex);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -145,7 +145,7 @@ bool LFB_L::_resize(vec2i size)
 	assert(totalPixels > 0);
 	
 	//the prefix sum algorithm used requires 2^n data
-	prefixSumsSize = nextPowerOf2(totalPixels);
+	prefixSumsSize = nextPowerOf2((int)totalPixels);
 	offsets->resize(sizeof(unsigned int) * (prefixSumsSize + 1));
 	
 	memory["Offsets"] = offsets->size();
@@ -304,7 +304,7 @@ bool LFB_L::count()
 		allocFragments = totalFragments + totalFragments / 2;
 	
 	if (globalSort)
-		allocFragments = ceil(totalFragments, 8) * 8;
+		allocFragments = ceil((int)totalFragments, 8) * 8;
 	
 	data->setFormat(lfbDataType);
 	data->resize(allocFragments * lfbDataStride);
@@ -331,7 +331,7 @@ size_t LFB_L::end()
 		assert(allocFragments % 8 == 0);
 		shaderSort.use();
 		setUniforms(shaderSort, "");
-		glDrawArrays(GL_POINTS, 0, allocFragments / 8);
+		glDrawArrays(GL_POINTS, 0, (GLsizei)allocFragments / 8);
 		shaderSort.unuse();
 		if (profile) profile->time("Sort");
 	}
@@ -422,10 +422,10 @@ bool LFB_L::save(std::string filename) const
 	//per-pixel counts - sizex * sizey or (
 	if (enableCompression)
 	{
-		uLongf compressLen = compressBound(counts.size() * sizeof(unsigned int));
+		uLongf compressLen = compressBound((int)counts.size() * sizeof(unsigned int));
 		std::vector<char> compressedCounts(compressLen);
 		//printf("BEFORE %i\n", compressLen);
-		compress((Bytef*)&compressedCounts[0], &compressLen, (Bytef*)&counts[0], counts.size() * sizeof(unsigned int));
+		compress((Bytef*)&compressedCounts[0], &compressLen, (Bytef*)&counts[0], (int)counts.size() * sizeof(unsigned int));
 		//printf("AFTER %i\n", compressLen);
 		int64_t compressLen64 = compressLen;
 		ofile.write((char*)&compressLen64, sizeof(int64_t));

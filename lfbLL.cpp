@@ -81,7 +81,7 @@ bool LFB_LL::resizePool(size_t allocs)
 		memory["Data"] = data->size();
 		
 		if (!data->object) //debugging
-			printf("Error resizing pool data %ix%i=%.2fMB\n", allocFragments, lfbDataStride, allocFragments * lfbDataStride / 1024.0 / 1024.0);
+			printf("Error resizing pool data %zux%i=%.2fMB\n", allocFragments, lfbDataStride, allocFragments * lfbDataStride / 1024.0 / 1024.0);
 		return true;
 	}
 	return false;
@@ -118,7 +118,7 @@ void LFB_LL::setDefines(Shader& program)
 }
 bool LFB_LL::setUniforms(Shader& program, std::string suffix)
 {
-	assert(allocFragments < (1<<31)-1); //current GLSL code only supports 32 bit signed int image unit addressing
+	assert(allocFragments < ((size_t)1<<31)-1); //current GLSL code only supports 32 bit signed int image unit addressing
 	
 	if (!alloc->object || !headPtrs->object)
 		return false;
@@ -252,7 +252,7 @@ bool LFB_LL::getDepthHistogram(std::vector<unsigned int>& histogram)
 	histogram.clear();
 	unsigned int* l = (unsigned int*)counts->map(true, false);
 	assert(l);
-	for (int i = 0; i < getTotalPixels(); ++i)
+	for (size_t i = 0; i < getTotalPixels(); ++i)
 	{
 		assert(l[i] < 1024);
 		if (histogram.size() <= l[i])

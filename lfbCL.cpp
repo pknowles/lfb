@@ -274,7 +274,7 @@ void LFB_CL::preparePack()
 	}
 	if (allocFragments * lfbDataStride > 1500000000)
 	{
-		printf("ERROR: FRAGS WAS %i\n", allocFragments);
+		printf("ERROR: FRAGS WAS %zu\n", allocFragments);
 		allocFragments = 1500000000;
 	}
 	
@@ -282,7 +282,7 @@ void LFB_CL::preparePack()
 	
 	data->resize(allocFragments * lfbDataStride);
 	if (CHECKERROR)
-		printf("%i\n", allocFragments * lfbDataStride);
+		printf("%zu\n", allocFragments * lfbDataStride);
 	memory["Data"] = data->size();
 	
 	if (profile) profile->time("Alloc");

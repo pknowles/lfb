@@ -100,17 +100,19 @@ bool LFB_B::setUniforms(Shader& program, std::string suffix)
 	glUniform1i(glGetUniformLocation(program, (infoStructName + ".dataDepth").c_str()), numLayers);
 	CHECKERROR;
 	
-	//bool writing = state!=DRAWING;
+	bool writing = state!=DRAWING;
 	
 	std::string countsName = "counts" + suffix;
 	std::string dataName = "data" + suffix;
 	
+	int exposeAs = bindless ? Shader::BINDLESS : Shader::IMAGE_UNIT;
+	
 	//bind(bind point index, name, shader program, bool read, bool write)
 	//counts->bind(program.unique("image", countsName), countsName.c_str(), program, true, writing);
-	program.set(countsName, *counts);
+	program.set(exposeAs, countsName, *counts);
 
 	//data->bind(program.unique("image", dataName), dataName.c_str(), program, !writing, true);
-	program.set(dataName, *data);
+	program.set(exposeAs, dataName, *data);
 	
 	CHECKERROR;
 	return true;
@@ -118,7 +120,7 @@ bool LFB_B::setUniforms(Shader& program, std::string suffix)
 bool LFB_B::begin()
 {
 	CHECKERROR;
-	if (profile) profile->begin();
+	//if (profile) profile->begin();
 	
 	LFBBase::begin();
 	
@@ -179,7 +181,7 @@ bool LFB_B::count()
 	//no point resizing or re-rendering
 	return false;
 }
-int LFB_B::end()
+size_t LFB_B::end()
 {
 	LFBBase::end();
 	return totalFragments;
@@ -199,7 +201,7 @@ bool LFB_B::getDepthHistogram(std::vector<unsigned int>& histogram)
 		return LFBBase::getDepthHistogram(histogram);
 	histogram.clear();
 	unsigned int* l = (unsigned int*)counts->map(true, false);
-	for (int i = 0; i < getTotalPixels(); ++i)
+	for (size_t i = 0; i < getTotalPixels(); ++i)
 	{
 		if (histogram.size() <= l[i])
 			histogram.resize(l[i]+1, 0);

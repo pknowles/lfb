@@ -1,46 +1,36 @@
 /* Copyright 2011 Pyarelal Knowles, under GNU LGPL (see LICENCE.txt) */
 
 
-#ifndef LFB_BRAGGED_H
-#define LFB_BRAGGED_H
+#ifndef LFB_RAGGED_H
+#define LFB_RAGGED_H
 
 #include "lfbBase.h"
 
 struct TextureBuffer;
 
-class LFB_L : public LFBBase
+class LFB_CL : public LFBBase
 {
 protected:
-	int prefixSumsSize; //next power of two of totalPixels
-	int prefixSumsHeight; //for the blend texture
-
-public:
+	int prefixSumsPixels; //next power of two of totalPixels
+	int prefixSumsSize; //total memory required for prefix sums on totalPixels
+	int interleavePixels; //number of pixels to interleave (some memory overhead, faster)
+	int interleaveOffset;
+	
+	TextureBuffer* counts;
 	TextureBuffer* offsets;
 	TextureBuffer* data;
-	TextureBuffer* ids;
-protected:
 	
+	void preparePack(); //call after counts are known. does prefix sums and allocates memory
 	
-	//blending requires swapping the current FBO in the first pass
-	int backupFBOHandle;
-	void backupFBO();
-	void restoreFBO();
-	
-	void initBlending();
-	void copyBlendResult();
-	
-	bool countUsingBlending;
-	bool globalSort;
+	virtual bool _resize(vec2i size);
 	
 	unsigned int blendFBO;
 	unsigned int blendTex;
-	
-	virtual bool _resize(vec2i size);
 public:
-	LFB_L();
+	LFB_CL();
 	void useBlending(bool enable);
 	void useGlobalSort(bool enable);
-	virtual ~LFB_L();
+	virtual ~LFB_CL();
 	virtual void setDefines(Shader& program);
 	virtual bool setUniforms(Shader& program, std::string suffix);
 	virtual bool begin();
@@ -48,7 +38,6 @@ public:
 	virtual size_t end();
 	virtual std::string getName();
 	virtual bool getDepthHistogram(std::vector<unsigned int>& histogram);
-	virtual bool save(std::string filename) const;
 };
 
 #endif

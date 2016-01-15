@@ -19,13 +19,8 @@ struct LFBTmp
 
 #define LFB_TMP_CONSTRUCTOR LFBTmp(0, 0, 0, -1)
 
-#if LFB_READONLY
-#define OFFSETS_TYPE layout(size1x32) readonly uimageBuffer
-#define DATA_TYPE layout(LFB_IMAGE_TYPE) readonly imageBuffer
-#else
-#define OFFSETS_TYPE layout(size1x32) coherent uimageBuffer
-#define DATA_TYPE layout(LFB_IMAGE_TYPE) imageBuffer
-#endif
+#define OFFSETS_TYPE LFB_EXPOSE_TABLE_COHERENT
+#define DATA_TYPE LFB_EXPOSE_DATA
 
 #define LFB_UNIFORMS in OFFSETS_TYPE offsets, DATA_TYPE data
 
@@ -46,25 +41,25 @@ LFBTmp lfbTmp##suffix = LFB_TMP_CONSTRUCTOR;
 lfbTmp##suffix.fragIndex = (index); \
 lfbTmp##suffix.fragOffset = 0; \
 if (lfbTmp##suffix.fragIndex > 0) \
-	lfbTmp##suffix.fragOffset = int(imageLoad(offsets##suffix, lfbTmp##suffix.fragIndex - 1).r); \
-lfbTmp##suffix.fragCount = int(imageLoad(offsets##suffix, lfbTmp##suffix.fragIndex).r) - lfbTmp##suffix.fragOffset; \
-lfbTmp##suffix.fragCount = min(lfbTmp##suffix.fragCount, MAX_FRAGS);
+	lfbTmp##suffix.fragOffset = LFB_EXPOSE_TABLE_GET(offsets##suffix, lfbTmp##suffix.fragIndex - 1); \
+	lfbTmp##suffix.fragCount = LFB_EXPOSE_TABLE_GET(offsets##suffix, lfbTmp##suffix.fragIndex) - lfbTmp##suffix.fragOffset; \
+	lfbTmp##suffix.fragCount = min(lfbTmp##suffix.fragCount, MAX_FRAGS);
 
 #define LFB_COUNT(suffix) lfbTmp##suffix.fragCount
 
 #define LFB_COUNT_AT(suffix, index) ( \
-	int(imageLoad(offsets##suffix, (index)).r) \
-	- ((index) > 0 ? int(imageLoad(offsets##suffix, (index) - 1).r) : 0) \
+	LFB_EXPOSE_TABLE_GET(offsets##suffix, (index)) \
+		- ((index) > 0 ? LFB_EXPOSE_TABLE_GET(offsets##suffix, (index) - 1) : 0) \
 	)
 
 #define LFB_LOAD(suffix, index) \
-	LFB_FRAG_TYPE(imageLoad(data##suffix, lfbTmp##suffix.fragOffset + (index)))
+	LFB_EXPOSE_DATA_GET(data##suffix, lfbTmp##suffix.fragOffset + (index))
 	
 #define LFB_STORE(suffix, index, dat) \
-	imageStore(data##suffix, lfbTmp##suffix.fragOffset + (index), vec4(dat LFB_FRAG_PAD))
+	LFB_EXPOSE_DATA_SET(data##suffix, lfbTmp##suffix.fragOffset + (index), dat)
 
 #define LFB_ITER_BEGIN(suffix) lfbTmp##suffix.i = 0
-#define LFB_ITER_CONDITION(suffix) lfbTmp##suffix.i < lfbTmp##suffix.fragCount
+#define LFB_ITER_CONDITION(suffix) (lfbTmp##suffix.i < lfbTmp##suffix.fragCount)
 #define LFB_ITER_INC(suffix) ++lfbTmp##suffix.i
 
 #if LFB_L_REVERSE == 1
@@ -78,10 +73,10 @@ lfbTmp##suffix.fragCount = min(lfbTmp##suffix.fragCount, MAX_FRAGS);
 #if !LFB_READONLY
 void _addFragment(LFBInfo info, inout LFBTmp tmp, LFB_UNIFORMS, int fragIndex, LFB_FRAG_TYPE dat)
 {
-	uint globalOffset = imageAtomicAdd(offsets, fragIndex, 1U);
+	int globalOffset = LFB_EXPOSE_TABLE_ADD(offsets, fragIndex, 1U);
 	
 	if (info.depthOnly == 0)
-		imageStore(data, int(globalOffset), vec4(dat LFB_FRAG_PAD));
+		LFB_EXPOSE_DATA_SET(data, globalOffset, dat);
 }
 #endif
 

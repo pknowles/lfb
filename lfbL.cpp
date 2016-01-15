@@ -3,11 +3,15 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <ostream>
+#include <fstream>
 
 #include <string>
 #include <vector>
 #include <map>
 #include <set>
+
+#include <zlib.h>
 
 #include <pyarlib/gpu.h>
 
@@ -98,7 +102,7 @@ void LFB_L::useBlending(bool enable)
 			glGenTextures(1, &blendTex);
 	
 		//set up blendTex
-		prefixSumsHeight = size2D.y + ceil(prefixSumsSize - totalPixels, size2D.x);
+		prefixSumsHeight = size2D.y + ceil(prefixSumsSize - (int)totalPixels, size2D.x);
 		assert(prefixSumsHeight * size2D.x >= prefixSumsSize);
 		glBindTexture(GL_TEXTURE_2D, blendTex);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -141,7 +145,7 @@ bool LFB_L::_resize(vec2i size)
 	assert(totalPixels > 0);
 	
 	//the prefix sum algorithm used requires 2^n data
-	prefixSumsSize = nextPowerOf2(totalPixels);
+	prefixSumsSize = nextPowerOf2((int)totalPixels);
 	offsets->resize(sizeof(unsigned int) * (prefixSumsSize + 1));
 	
 	memory["Offsets"] = offsets->size();
@@ -167,7 +171,7 @@ bool LFB_L::setUniforms(Shader& program, std::string suffix)
 		return false;
 	
 	//writing, depending on the state, determines READ_ONLY, WRITE_ONLY and READ_WRITE TextureBuffer data
-	//bool writing = state!=DRAWING;
+	bool writing = state!=DRAWING;
 
 	//TextureBuffer::unbindAll();
 	
@@ -179,19 +183,21 @@ bool LFB_L::setUniforms(Shader& program, std::string suffix)
 	if (size2D.x > 0)
 		glUniform2i(glGetUniformLocation(program, (infoStructName + suffix + ".size").c_str()), size2D.x, size2D.y);
 	glUniform1i(glGetUniformLocation(program, (infoStructName + suffix + ".depthOnly").c_str()), (state==FIRST_PASS?1:0));
-		
+	
+	int exposeAs = bindless ? Shader::BINDLESS : Shader::IMAGE_UNIT;
+	
 	if (state != SORTING)
-		program.set(offsetsName, *offsets);
+		program.set(exposeAs, offsetsName, *offsets);
 		//offsets->bind(program.unique("image", offsetsName), offsetsName.c_str(), program, true, writing);
 	if (data->size() > 0)
-		program.set(dataName, *data);
+		program.set(exposeAs, dataName, *data);
 		//data->bind(program.unique("image", dataName), dataName.c_str(), program, !writing, writing);
 	
 	if (globalSort)
 	{
 		if (state == SORTING || state == SECOND_PASS)
 			if (ids->size() > 0)
-				program.set(idsName, *ids);
+				program.set(exposeAs, idsName, *ids);
 				//ids->bind(program.unique("image", idsName), idsName.c_str(), program, true, writing);
 	}
 	
@@ -298,7 +304,7 @@ bool LFB_L::count()
 		allocFragments = totalFragments + totalFragments / 2;
 	
 	if (globalSort)
-		allocFragments = ceil(totalFragments, 8) * 8;
+		allocFragments = ceil((int)totalFragments, 8) * 8;
 	
 	data->setFormat(lfbDataType);
 	data->resize(allocFragments * lfbDataStride);
@@ -312,7 +318,7 @@ bool LFB_L::count()
 	
 	return true; //always need to do a second pass
 }
-int LFB_L::end()
+size_t LFB_L::end()
 {
 	glMemoryBarrierEXT(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
 	if (profile) profile->time("Render");
@@ -325,7 +331,7 @@ int LFB_L::end()
 		assert(allocFragments % 8 == 0);
 		shaderSort.use();
 		setUniforms(shaderSort, "");
-		glDrawArrays(GL_POINTS, 0, allocFragments / 8);
+		glDrawArrays(GL_POINTS, 0, (GLsizei)allocFragments / 8);
 		shaderSort.unuse();
 		if (profile) profile->time("Sort");
 	}
@@ -345,9 +351,9 @@ bool LFB_L::getDepthHistogram(std::vector<unsigned int>& histogram)
 	histogram.clear();
 	unsigned int* l = (unsigned int*)offsets->map(true, false);
 	unsigned int p = 0;
-	for (int i = 0; i < getTotalPixels(); ++i)
+	for (size_t i = 0; i < getTotalPixels(); ++i)
 	{
-		assert((int)offsets->size() > i * (int)sizeof(unsigned int));
+		assert(offsets->size() > i * (int)sizeof(unsigned int));
 		unsigned int v = l[i] - p;
 		p = l[i];
 		if (histogram.size() <= v)
@@ -355,6 +361,138 @@ bool LFB_L::getDepthHistogram(std::vector<unsigned int>& histogram)
 		histogram[v]++;
 	}
 	offsets->unmap();
+	return true;
+}
+
+bool LFB_L::save(std::string filename) const
+{
+	if (!offsets->size())
+		return false;
+	
+	std::ofstream ofile(filename.c_str(), std::ios::binary);
+	if (!ofile)
+		return false;
+	
+	size_t pixels = size2D.x * size2D.y;
+	std::vector<int> counts(pixels);
+	unsigned int* endoffsets = (unsigned int*)offsets->map(true, false);
+	unsigned int p = 0;
+	for (size_t i = 0; i < pixels; ++i)
+	{
+		assert(offsets->size() > i * (int)sizeof(unsigned int));
+		counts[i] = endoffsets[i] - p;
+		p = endoffsets[i];
+	}
+	
+	const int COMPRESS_KEY = 0x001;
+	const int COMPRESS_VAL_NONE = 0x0;
+	const int COMPRESS_VAL_ZLIB = 0x1;
+	
+	const int LAYOUT_KEY = 0x002;
+	const int LAYOUT_VAL_PIXELS = 0x000; //63% data compression
+	const int LAYOUT_VAL_SHEETS = 0x001; //54% data compression
+	
+	bool enableCompression = false;
+	int layout = LAYOUT_VAL_PIXELS;
+	
+	//header
+	ofile.write("LFB", 3);
+	ofile.write((char*)&size2D.x, sizeof(int)); //must have sizex
+	ofile.write((char*)&size2D.y, sizeof(int)); //must have sizex
+	ofile.write((char*)&lfbDataStride, sizeof(int)); //must have data stride
+	int headerStart = (int)ofile.tellp();
+	int dataStart = 0;
+	ofile.write((char*)&dataStart, sizeof(int));
+	
+	ofile.write((char*)&COMPRESS_KEY, sizeof(int));
+	if (enableCompression)
+		ofile.write((char*)&COMPRESS_VAL_ZLIB, sizeof(int));
+	else
+		ofile.write((char*)&COMPRESS_VAL_NONE, sizeof(int));
+		
+	ofile.write((char*)&LAYOUT_KEY, sizeof(int));
+	ofile.write((char*)&layout, sizeof(int));
+	
+	//go back and write dataStart, for code to skip the header
+	dataStart = (int)ofile.tellp();
+	ofile.seekp(headerStart);
+	ofile.write((char*)&dataStart, sizeof(int)); //for future attribs
+	ofile.seekp(dataStart);
+	
+	//per-pixel counts - sizex * sizey or (
+	if (enableCompression)
+	{
+		uLongf compressLen = compressBound((int)counts.size() * sizeof(unsigned int));
+		std::vector<char> compressedCounts(compressLen);
+		//printf("BEFORE %i\n", compressLen);
+		compress((Bytef*)&compressedCounts[0], &compressLen, (Bytef*)&counts[0], (int)counts.size() * sizeof(unsigned int));
+		//printf("AFTER %i\n", compressLen);
+		int64_t compressLen64 = compressLen;
+		ofile.write((char*)&compressLen64, sizeof(int64_t));
+		ofile.write((const char*)&compressedCounts[0], compressLen);
+	}
+	else
+		ofile.write((const char*)&counts[0], counts.size() * sizeof(unsigned int));
+	//printf("end counts %i\n", (int)ofile.tellp());
+	
+	//packed data - sum(counts) * data stride
+	//FIXME: this has a fairly terrible compression ratio
+	float* d = (float*)data->map(true, false);
+	int datSize = endoffsets[pixels-1] * lfbDataStride;
+	
+	
+	int attribs = lfbDataStride/sizeof(float);
+	std::vector<float> shuffled;
+	if (layout == LAYOUT_VAL_SHEETS)
+	{
+		shuffled.reserve(datSize);
+		for (int attrib = 0; attrib < attribs; ++attrib)
+		{
+			for (int sheet = 0;; ++sheet)
+			{
+				bool found = false;
+				for (size_t i = 0; i < pixels; ++i)
+				{
+					if (counts[i] > sheet) //FIXME: REALLY SLOOOOW!!!
+					{
+						found = true;
+						shuffled.push_back(d[(endoffsets[i]-counts[i]+sheet)*attribs+attrib]);
+					}
+				}
+				if (!found)
+					break;
+			}
+		}
+		assert((int)shuffled.size()*(int)sizeof(float) == (int)(int)(int)datSize); //happy yet?
+	}
+	
+	if (enableCompression)
+	{
+		uLongf compressLen = compressBound(datSize);
+		std::vector<char> compressedData(compressLen);
+		//printf("BEFORE %i\n", datSize);
+		if (shuffled.size())
+			compress((Bytef*)&compressedData[0], &compressLen, (Bytef*)&shuffled[0], datSize);
+		else
+			compress((Bytef*)&compressedData[0], &compressLen, (Bytef*)d, datSize);
+		//printf("AFTER %i\n", compressLen);
+		int64_t compressLen64 = compressLen;
+		ofile.write((char*)&compressLen64, sizeof(int64_t));
+		ofile.write((char*)&compressedData[0], compressLen);
+	}
+	else
+	{
+		if (shuffled.size())
+			ofile.write((char*)&shuffled[0], datSize);
+		else
+			ofile.write((char*)d, datSize);
+	}
+	//printf("end data %i\n", (int)ofile.tellp());
+	
+	ofile.close();
+	data->unmap();
+	offsets->unmap();
+	
 	return true;
 }
 

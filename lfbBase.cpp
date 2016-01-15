@@ -53,6 +53,8 @@ LFBBase::LFBBase() : size2D(0, 0)
 	
 	computeCounts = false;
 	
+	bindless = false;
+	
 	isDirty = false;
 	
 	lastLFBDataStride = 0;
@@ -109,7 +111,7 @@ vec2i LFBBase::getPack()
 }
 
 //FIXME: using copy() used to be fast but I don't think it is anymore
-void LFBBase::zeroBuffer(TextureBuffer* buffer, int size)
+void LFBBase::zeroBuffer(TextureBuffer* buffer, size_t size)
 {
 	if (buffer->size() == 0)
 		return; //nothing to do
@@ -137,7 +139,7 @@ void LFBBase::zeroBuffer(TextureBuffer* buffer, int size)
 		//zeroes->bind(0, "tozero", shaderZeroes, false, true);
 		shaderZeroes.set("tozero", *zeroes);
 		
-		glDrawArrays(GL_POINTS, 0, zeroes->size() / sizeof(unsigned int));
+		glDrawArrays(GL_POINTS, 0, (int)zeroes->size() / sizeof(unsigned int));
 		glMemoryBarrierEXT(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
 		
 		shaderZeroes.unuse();
@@ -162,11 +164,11 @@ void LFBBase::zeroBuffer(TextureBuffer* buffer, int size)
 	zeroes->copy(buffer, 0, 0, size);
 	CHECKERROR;
 }
-int LFBBase::getTotalPixels()
+size_t LFBBase::getTotalPixels()
 {
 	return totalPixels;
 }
-int LFBBase::getTotalFragments()
+size_t LFBBase::getTotalFragments()
 {
 	return totalFragments;
 }
@@ -182,6 +184,7 @@ void LFBBase::setDefines(Shader& program)
 {
 	program.define("_MAX_FRAGS", maxFrags);
 	program.define("LFB_FRAG_SIZE", lfbDataStride/sizeof(float));
+	program.define("LFB_BINDLESS", bindless);
 	
 	//LFB_READONLY could also be defined here, however
 	//in case additional operations need to be performed, such
@@ -207,7 +210,7 @@ bool LFBBase::count()
 	state = SECOND_PASS;
 	return false; //is a second pass needed? no by default
 }
-int LFBBase::end()
+size_t LFBBase::end()
 {
 	state = DRAWING;
 	return 0; //number of fragments rendered
@@ -226,7 +229,7 @@ void LFBBase::sort()
 		exit(0);
 	setUniforms(*sorter, "toSort");
 	glEnable(GL_RASTERIZER_DISCARD);
-	glDrawArrays(GL_POINTS, 0, totalPixels);
+	glDrawArrays(GL_POINTS, 0, (GLsizei)totalPixels);
 	glDisable(GL_RASTERIZER_DISCARD);
 	sorter->unuse();
 	CHECKERROR;
@@ -240,11 +243,18 @@ bool LFBBase::requireCounts(bool enable)
 	isDirty = true;
 	return true;
 }
+bool LFBBase::useBindlessGraphics(bool enable)
+{
+	if (bindless == enable)
+		return false;
+	bindless = enable;
+	return true;
+}
 std::string LFBBase::getMemoryInfo()
 {
 	std::stringstream ret;
-	int total = 0;
-	for (std::map<std::string, int>::iterator it = memory.begin(); it != memory.end(); ++it)
+	size_t total = 0;
+	for (std::map<std::string, size_t>::iterator it = memory.begin(); it != memory.end(); ++it)
 	{
 		total += it->second;
 		ret << it->first << ": " << humanBytes(it->second, false) << std::endl;
@@ -271,7 +281,7 @@ bool LFBBase::setFormat(int f)
 size_t LFBBase::getMemoryUsage()
 {
 	size_t total = 0;
-	std::map<std::string, int>::iterator it;
+	std::map<std::string, size_t>::iterator it;
 	for (it = memory.begin(); it != memory.end(); ++it)
 		total += it->second;
 	return total;
@@ -282,4 +292,15 @@ bool LFBBase::getDepthHistogram(std::vector<unsigned int>& histogram)
 	return false;
 }
 
+bool LFBBase::save(std::string filename) const
+{
+	printf("LFB::save() not implemented for this type\n");	
+	return false;
+}
+
+bool LFBBase::load(std::string filename)
+{
+	printf("LFB::load() not implemented for this type\n");	
+	return false;
+}
 

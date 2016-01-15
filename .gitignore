@@ -1,0 +1,7 @@
+deepimage.pyc
+
+vs/ipch/
+vs/Debug*
+vs/Release*
+*.sdf
+*.opensdf

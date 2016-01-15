@@ -14,6 +14,7 @@
 #include "lfbLL.h"
 #include "lfbPLL.h"
 #include "lfbL.h"
+#include "lfbCL.h"
 
 LFB::LFB()
 {
@@ -32,6 +33,7 @@ void LFB::initCurent()
 	case LFB_TYPE_LL: instance = new LFB_LL(); break;
 	case LFB_TYPE_PLL: instance = new LFB_PLL(); break;
 	case LFB_TYPE_L: instance = new LFB_L(); break;
+	case LFB_TYPE_CL: instance = new LFB_CL(); break;
 	}
 	
 	printf("Created a %s\n", instance->getName().c_str());
@@ -68,8 +70,8 @@ void LFB::setType(LFBType type)
 		
 		initCurent();
 		
-		//LFB_L* lfbL = dynamic_cast<LFB_L*>(instance);
-		//LFB_LL* lfbLL = dynamic_cast<LFB_LL*>(instance);
+		LFB_L* lfbL = dynamic_cast<LFB_L*>(instance);
+		LFB_LL* lfbLL = dynamic_cast<LFB_LL*>(instance);
 	}
 }
 

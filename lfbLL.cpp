@@ -34,6 +34,7 @@ LFB_LL::LFB_LL()
 	nextPtrs = new TextureBuffer(GL_R32UI);
 	counts = new TextureBuffer(GL_R32UI);
 	data = new TextureBuffer(lfbDataType);
+	lfbNeedsCounts = false;
 }
 LFB_LL::~LFB_LL()
 {
@@ -58,13 +59,14 @@ bool LFB_LL::_resize(vec2i size)
 	
 	memory["Counter"] = alloc->size();
 	memory["Head Ptrs"] = headPtrs->size();
+	memory["Counts"] = counts->size();
 	
 	return true;
 }
-bool LFB_LL::resizePool(int allocs)
+bool LFB_LL::resizePool(size_t allocs)
 {
 	totalFragments = allocs - 1;
-	allocs = mymax(allocs, 32);
+	allocs = mymax(allocs, (size_t)32);
 	
 	//only resize if necessary
 	//comparing using ->size and lfbDataStride allows for changes in lfbDataStride
@@ -79,7 +81,7 @@ bool LFB_LL::resizePool(int allocs)
 		memory["Data"] = data->size();
 		
 		if (!data->object) //debugging
-			printf("Error resizing pool data %ix%i=%.2fMB\n", allocFragments, lfbDataStride, allocFragments * lfbDataStride / 1024.0 / 1024.0);
+			printf("Error resizing pool data %zux%i=%.2fMB\n", allocFragments, lfbDataStride, allocFragments * lfbDataStride / 1024.0 / 1024.0);
 		return true;
 	}
 	return false;
@@ -97,7 +99,7 @@ void LFB_LL::initBuffers()
 	//zero the head pointers, or rather, set each pointer to NULL
 	zeroBuffer(headPtrs);
 	
-	if (computeCounts)
+	if (computeCounts || lfbNeedsCounts)
 	{
 		counts->resize(sizeof(unsigned int) * totalPixels);
 		zeroBuffer(counts);
@@ -112,10 +114,12 @@ void LFB_LL::setDefines(Shader& program)
 {
 	LFBBase::setDefines(program);
 	program.define("LFB_METHOD_H", "lfbLL.glsl");
-	program.define("LFB_REQUIRE_COUNTS", computeCounts);
+	program.define("LFB_REQUIRE_COUNTS", computeCounts || lfbNeedsCounts);
 }
 bool LFB_LL::setUniforms(Shader& program, std::string suffix)
 {
+	assert(allocFragments < ((size_t)1<<31)-1); //current GLSL code only supports 32 bit signed int image unit addressing
+	
 	if (!alloc->object || !headPtrs->object)
 		return false;
 	
@@ -133,27 +137,30 @@ bool LFB_LL::setUniforms(Shader& program, std::string suffix)
 	if (size2D.x > 0)
 		program.set(infoStructName + ".size", size2D);
 		//glUniform2i(glGetUniformLocation(program, ().c_str()), size2D.x, size2D.y);
-	program.set(infoStructName + ".fragAlloc", allocFragments);
+	program.set(infoStructName + ".fragAlloc", (int)allocFragments);
 	//glUniform1i(glGetUniformLocation(program, (infoStructName + ".fragAlloc").c_str()), allocFragments);
 	
 	//writing, depending on the state, determines READ_ONLY, WRITE_ONLY and READ_WRITE TextureBuffer data
-	//bool writing = state!=DRAWING;
+	bool writing = state!=DRAWING;
 	
 	//int headIndex = program.unique("image", headName);
 	//int nextIndex = program.unique("image", nextName);
 	//int dataIndex = program.unique("image", dataName);
 	//printf("%s: %i %i %i\n", suffix.c_str(), headIndex, nextIndex, dataIndex);
 	//headPtrs->bind(headIndex, headName.c_str(), program, true, writing);
-	program.set(headName, *headPtrs);
+	
+	int exposeAs = bindless ? Shader::BINDLESS : Shader::IMAGE_UNIT;
+	
+	program.set(exposeAs, headName, *headPtrs);
 	if (nextPtrs->object)
-		program.set(nextName, *nextPtrs);
+		program.set(exposeAs, nextName, *nextPtrs);
 		//nextPtrs->bind(nextIndex, nextName.c_str(), program, !writing, writing);
 	if (data->object)
-		program.set(dataName, *data);
+		program.set(exposeAs, dataName, *data);
 		//data->bind(dataIndex, dataName.c_str(), program, !writing, true);
 	
 	if (*counts)
-		program.set(countsName, *counts);
+		program.set(exposeAs, countsName, *counts);
 	
 	return true;
 }
@@ -222,7 +229,7 @@ bool LFB_LL::count()
 	else
 		return false; //render is done, no second pass needed
 }
-int LFB_LL::end()
+size_t LFB_LL::end()
 {
 	LFBBase::end();
 	glMemoryBarrierEXT(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
@@ -245,7 +252,7 @@ bool LFB_LL::getDepthHistogram(std::vector<unsigned int>& histogram)
 	histogram.clear();
 	unsigned int* l = (unsigned int*)counts->map(true, false);
 	assert(l);
-	for (int i = 0; i < getTotalPixels(); ++i)
+	for (size_t i = 0; i < getTotalPixels(); ++i)
 	{
 		assert(l[i] < 1024);
 		if (histogram.size() <= l[i])

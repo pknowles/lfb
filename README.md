@@ -15,7 +15,7 @@ These include:
 This project uses [pyarlib](https://github.com/pknowles/pyarlib/) for shader and GL buffer management.
 
 The most straight forward application is *order independent transparency*, for which a [demo application](https://github.com/pknowles/oit) is also provided.
-The techniques included there are from [*Fast Sorting for Exact OIT of Complex Scenes*](http://heuristic42.com/research/).
+The techniques included there are from [*Fast Sorting for Exact OIT of Complex Scenes*](https://www.heuristic42.com/users/4/pknowles/).
 
 
 LICENSE
